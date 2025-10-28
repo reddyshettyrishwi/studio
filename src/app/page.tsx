@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   ChevronsUpDown,
   Filter,
@@ -8,6 +9,7 @@ import {
   Instagram,
   LayoutGrid,
   List,
+  LogOut,
   Megaphone,
   Plus,
   Search,
@@ -27,6 +29,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,6 +181,18 @@ export default function DashboardPage() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <Link href="/login" className="w-full">
+                        <SidebarMenuButton>
+                            <LogOut />
+                            Log Out
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset className="max-h-screen overflow-auto">
         <main className="p-4 md:p-6">
@@ -383,3 +398,5 @@ export default function DashboardPage() {
     </SidebarProvider>
   );
 }
+
+    
