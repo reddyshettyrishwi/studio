@@ -11,21 +11,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Megaphone } from "lucide-react";
+import { Megaphone, Chrome } from "lucide-react";
 import Link from "next/link";
 import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
-  const [selectedLevel, setSelectedLevel] = React.useState<UserRole>("Level 1");
   const router = useRouter();
 
-  const handleSignIn = () => {
-    // In a real app, you'd set context/state here.
-    // For now, we'll use query params for simplicity.
-    router.push(`/?role=${selectedLevel}`);
+  const handleSignIn = (level: UserRole) => {
+    // In a real app, you'd perform authentication here.
+    // For now, we'll just navigate to the dashboard.
+    router.push(`/?role=${level}`);
   };
 
   return (
@@ -40,33 +40,37 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline">Select Your Role</CardTitle>
+          <CardTitle className="text-2xl font-headline">Sign In</CardTitle>
           <CardDescription>
-            Choose your access level to sign in.
+            Enter your credentials to access the dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <RadioGroup
-            defaultValue="Level 1"
-            className="grid gap-4"
-            onValueChange={(value: UserRole) => setSelectedLevel(value)}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Level 1" id="level-1" />
-              <Label htmlFor="level-1" className="cursor-pointer">Level 1</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Level 2" id="level-2" />
-              <Label htmlFor="level-2" className="cursor-pointer">Level 2</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Level 3" id="level-3" />
-              <Label htmlFor="level-3" className="cursor-pointer">Level 3</Label>
-            </div>
-          </RadioGroup>
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" placeholder="example@gmail.com" />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" placeholder="••••••••" />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Button variant="outline" onClick={() => handleSignIn("Level 1")}>Level 1</Button>
+            <Button variant="outline" onClick={() => handleSignIn("Level 2")}>Level 2</Button>
+            <Button variant="outline" onClick={() => handleSignIn("Level 3")}>Level 3</Button>
+          </div>
         </CardContent>
         <CardFooter className="flex-col gap-4">
-          <Button className="w-full" onClick={handleSignIn}>Sign in as {selectedLevel}</Button>
+          <div className="relative w-full">
+            <Separator />
+            <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
+              OR
+            </span>
+          </div>
+          <Button variant="outline" className="w-full">
+            <Chrome className="mr-2 h-4 w-4" />
+            Sign in with Google
+          </Button>
         </CardFooter>
       </Card>
     </div>
