@@ -1,4 +1,4 @@
-export type UserRole = 'Associate' | 'Manager' | 'Head';
+export type UserRole = 'Level 1' | 'Level 2' | 'Level 3';
 
 export type Platform = 'YouTube' | 'Instagram' | 'Twitter' | 'TikTok';
 

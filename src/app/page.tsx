@@ -75,7 +75,7 @@ const platformIcons: Record<Platform, React.ReactNode> = {
 };
 
 const maskSensitiveData = (data: string, role: UserRole) => {
-  if (role === 'Associate') {
+  if (role === 'Level 1') {
     return '••••••••••';
   }
   return data;
@@ -86,7 +86,7 @@ export default function DashboardPage() {
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "table">("grid");
-  const [userRole, setUserRole] = React.useState<UserRole>("Manager");
+  const [userRole, setUserRole] = React.useState<UserRole>("Level 2");
 
   const [filters, setFilters] = React.useState<{
     category: Set<string>;
@@ -223,9 +223,9 @@ export default function DashboardPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuCheckboxItem checked={userRole === 'Associate'} onCheckedChange={() => setUserRole('Associate')}>Associate</DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem checked={userRole === 'Manager'} onCheckedChange={() => setUserRole('Manager')}>Manager</DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem checked={userRole === 'Head'} onCheckedChange={() => setUserRole('Head')}>Head</DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem checked={userRole === 'Level 1'} onCheckedChange={() => setUserRole('Level 1')}>Level 1</DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem checked={userRole === 'Level 2'} onCheckedChange={() => setUserRole('Level 2')}>Level 2</DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem checked={userRole === 'Level 3'} onCheckedChange={() => setUserRole('Level 3')}>Level 3</DropdownMenuCheckboxItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
