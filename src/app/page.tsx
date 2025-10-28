@@ -296,7 +296,7 @@ export default function DashboardPage() {
                         </CardHeader>
                       </Card>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-lg">
+                    <DialogContent className="sm:max-w-lg bg-card/80 backdrop-blur-sm">
                       <DialogHeader>
                          <div className="flex flex-row items-center gap-4">
                             <Avatar className="h-16 w-16">
@@ -361,8 +361,7 @@ export default function DashboardPage() {
                                     <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>
                                     <TableCell>${influencer.lastPricePaid.toLocaleString()}</TableCell>
                                     <TableCell>{influencer.averageViews.toLocaleString()}</TableCell>
-                                    <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>
-                                    <TableCell>
+                                    <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>                                    <TableCell>
                                       <div className="flex items-center">
                                         {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
                                         {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
@@ -398,5 +397,3 @@ export default function DashboardPage() {
     </SidebarProvider>
   );
 }
-
-    
