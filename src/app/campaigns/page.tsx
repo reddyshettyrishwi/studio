@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   LogOut,
   Megaphone,
+  Plus,
   Search,
   Users,
 } from "lucide-react";
@@ -114,6 +115,7 @@ export default function CampaignsPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
+                    <Button><Plus className="mr-2 h-4 w-4" /> Create Campaign</Button>
                 </div>
             </div>
             
@@ -127,6 +129,7 @@ export default function CampaignsPage() {
                     <TableHead>Price Paid</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Deliverables</TableHead>
+                    <TableHead>Approval Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -150,6 +153,13 @@ export default function CampaignsPage() {
                         <TableCell>${campaign.pricePaid.toLocaleString()}</TableCell>
                         <TableCell>{format(new Date(campaign.date), 'dd MMM yyyy')}</TableCell>
                         <TableCell className="text-muted-foreground">{campaign.deliverables}</TableCell>
+                        <TableCell>
+                          {campaign.approved ? (
+                            <Badge>Approved</Badge>
+                          ) : (
+                            <Badge variant="secondary">Pending</Badge>
+                          )}
+                        </TableCell>
                       </TableRow>
                     )
                   })}

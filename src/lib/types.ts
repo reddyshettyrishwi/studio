@@ -34,4 +34,5 @@ export type Campaign = {
   pricePaid: number;
   averageViews: number;
   influencerId: string;
+  approved: boolean;
 };
