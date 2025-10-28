@@ -95,10 +95,15 @@ export default {
             height: '0',
           },
         },
+        'move-dots': {
+          '0%': { backgroundPosition: '0 0, 0 0, 0 0, 0 0' },
+          '100%': { backgroundPosition: '0 0, 0 0, -50px 50px, 50px -50px' },
+        }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'move-dots': 'move-dots 15s linear infinite',
       },
     },
   },
