@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -281,7 +282,7 @@ export default function DashboardPage() {
                 {filteredInfluencers.map(influencer => (
                   <Dialog key={influencer.id}>
                     <DialogTrigger asChild>
-                      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                      <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:ring-2 hover:ring-primary">
                         <CardHeader>
                           <div className="flex flex-row items-center gap-4">
                             <Avatar className="h-12 w-12">
