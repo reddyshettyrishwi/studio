@@ -17,7 +17,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="flex min-h-screen items-center justify-center">
         <div className="absolute top-8 left-8 flex items-center gap-2">
              <div className="bg-primary/20 text-primary p-2 rounded-lg">
                 <Megaphone className="h-6 w-6" />
@@ -56,5 +56,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
