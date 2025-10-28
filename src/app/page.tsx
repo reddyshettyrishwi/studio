@@ -169,16 +169,20 @@ export default function DashboardPage() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton isActive>
-                <Users />
-                Influencers
-              </SidebarMenuButton>
+              <Link href="/" className="w-full">
+                <SidebarMenuButton isActive>
+                  <Users />
+                  Influencers
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>
-                <Megaphone />
-                Campaigns
-              </SidebarMenuButton>
+              <Link href="/campaigns" className="w-full">
+                <SidebarMenuButton>
+                  <Megaphone />
+                  Campaigns
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
