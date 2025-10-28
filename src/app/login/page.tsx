@@ -18,14 +18,24 @@ import Link from "next/link";
 import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
 
   const handleSignIn = (level: UserRole) => {
-    // In a real app, you'd perform authentication here.
-    // For now, we'll just navigate to the dashboard.
-    router.push(`/?role=${level}`);
+    if (password === "123456") {
+      router.push(`/?role=${level}`);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Sign In Failed",
+        description: "The password you entered is incorrect. Please try again.",
+      });
+    }
   };
 
   return (
@@ -48,11 +58,11 @@ export default function LoginPage() {
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="example@gmail.com" />
+            <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" />
+            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <div className="grid grid-cols-3 gap-2">
             <Button variant="outline" onClick={() => handleSignIn("Level 1")}>Level 1</Button>
