@@ -16,7 +16,9 @@ import {
   Search,
   Users,
   Youtube,
-  Twitter
+  Twitter,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { Influencer, Campaign, UserRole, Platform } from "@/lib/types";
 import { influencers as initialInfluencers, campaigns as initialCampaigns } from "@/lib/data";
@@ -102,6 +104,11 @@ export default function DashboardPage() {
   const categories = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.category))], []);
   const regions = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.region))], []);
   const languages = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.language))], []);
+  
+  // Analytics data
+  const totalInfluencers = influencers.length;
+  const totalCampaigns = campaigns.length;
+  const approvedCampaigns = campaigns.filter(c => c.approved).length;
 
   const handleFilterChange = (type: keyof typeof filters, value: string) => {
     setFilters(prev => {
@@ -204,8 +211,61 @@ export default function DashboardPage() {
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
                 <div className="flex items-center gap-4">
                     <SidebarTrigger className="md:hidden" />
-                    <h2 className="text-3xl font-headline font-bold tracking-tight">Influencers</h2>
+                    <h2 className="text-3xl font-headline font-bold tracking-tight">Dashboard</h2>
                 </div>
+                 <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Viewing as:</span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          {userRole}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuCheckboxItem checked={userRole === 'Associate'} onCheckedChange={() => setUserRole('Associate')}>Associate</DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem checked={userRole === 'Manager'} onCheckedChange={() => setUserRole('Manager')}>Manager</DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem checked={userRole === 'Head'} onCheckedChange={() => setUserRole('Head')}>Head</DropdownMenuCheckboxItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+
+            {/* Analytics Section */}
+            <div className="grid gap-4 md:grid-cols-3 mb-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Influencers</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalInfluencers}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
+                        <Megaphone className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalCampaigns}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Approved Campaigns</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{approvedCampaigns}</div>
+                    </CardContent>
+                </Card>
+            </div>
+            
+            <Separator className="my-6" />
+
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
+                <h3 className="text-2xl font-headline font-bold tracking-tight">Influencers</h3>
                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     <div className="relative w-full md:w-auto grow">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -262,22 +322,6 @@ export default function DashboardPage() {
              <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
                 <div className="text-sm text-muted-foreground">
                     {filteredInfluencers.length} influencers found.
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Viewing as:</span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          {userRole}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuCheckboxItem checked={userRole === 'Associate'} onCheckedChange={() => setUserRole('Associate')}>Associate</DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem checked={userRole === 'Manager'} onCheckedChange={() => setUserRole('Manager')}>Manager</DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem checked={userRole === 'Head'} onCheckedChange={() => setUserRole('Head')}>Head</DropdownMenuCheckboxItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                 </div>
              </div>
 
