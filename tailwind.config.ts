@@ -13,6 +13,9 @@ export default {
         'gradient-radial-spread':
           'radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 40%), radial-gradient(circle at bottom right, hsl(var(--accent) / 0.1), transparent 40%)',
       },
+      boxShadow: {
+        'glow-primary': '0 0 20px 0px hsl(var(--primary) / 0.6)',
+      },
       fontFamily: {
         body: ['Roboto', 'sans-serif'],
         headline: ['Roboto', 'sans-serif'],

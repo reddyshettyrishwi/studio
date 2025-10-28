@@ -282,7 +282,7 @@ export default function DashboardPage() {
                 {filteredInfluencers.map(influencer => (
                   <Dialog key={influencer.id}>
                     <DialogTrigger asChild>
-                      <Card className="cursor-pointer hover:shadow-lg transition-shadow hover:ring-2 hover:ring-primary">
+                      <Card className="cursor-pointer transition-all hover:shadow-glow-primary">
                         <CardHeader>
                           <div className="flex flex-row items-center gap-4">
                             <Avatar className="h-12 w-12">
@@ -389,6 +389,7 @@ export default function DashboardPage() {
             <LogCampaignDialog
               isOpen={isLogCampaignOpen}
               onClose={() => setLogCampaignOpen(false)}
+      
               onLogCampaign={logCampaign}
               influencers={influencers}
             />
