@@ -302,14 +302,14 @@ export default function DashboardPage() {
                             </div>
                             <Separator />
                             <div className="space-y-2 text-sm">
-                              <p><strong className="font-medium">Last Price Paid:</strong> ${influencer.lastPricePaid.toLocaleString()}</p>
-                              <p><strong className="font-medium">Avg. Views:</strong> {influencer.averageViews.toLocaleString()}</p>
+                              <p><strong className="font-bold">Last Price Paid:</strong> ${influencer.lastPricePaid.toLocaleString()}</p>
+                              <p><strong className="font-bold">Avg. Views:</strong> {influencer.averageViews.toLocaleString()}</p>
                               <div className="flex items-center">
-                                <strong className="font-medium mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
+                                <strong className="font-bold mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
                                 {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
                               </div>
-                              <p><strong className="font-medium">Email:</strong> {maskSensitiveData(influencer.email, userRole)}</p>
-                              <p><strong className="font-medium">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
+                              <p><strong className="font-bold">Email:</strong> {maskSensitiveData(influencer.email, userRole)}</p>
+                              <p><strong className="font-bold">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
                             </div>
                         </div>
                     </DialogContent>
