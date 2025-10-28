@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from 'next/navigation'
 import {
   ChevronsUpDown,
   Filter,
@@ -81,12 +82,15 @@ const maskSensitiveData = (data: string, role: UserRole) => {
   return data;
 };
 
-export default function DashboardPage() {
+function Dashboard() {
+  const searchParams = useSearchParams()
+  const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
+
   const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "table">("grid");
-  const [userRole, setUserRole] = React.useState<UserRole>("Level 2");
+  const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
 
   const [filters, setFilters] = React.useState<{
     category: Set<string>;
@@ -445,5 +449,14 @@ export default function DashboardPage() {
         </main>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+// Wrap the main component in a Suspense boundary
+export default function DashboardPage() {
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <Dashboard />
+    </React.Suspense>
   );
 }
