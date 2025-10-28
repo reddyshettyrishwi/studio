@@ -281,7 +281,7 @@ export default function DashboardPage() {
                         </CardHeader>
                       </Card>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
+                    <DialogContent className="sm:max-w-lg">
                       <DialogHeader>
                          <div className="flex flex-row items-center gap-4">
                             <Avatar className="h-16 w-16">
