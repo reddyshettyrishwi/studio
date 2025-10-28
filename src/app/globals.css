@@ -31,11 +31,11 @@
     --radius: 0.75rem;
     
     /* Sidebar Theme */
-    --sidebar-background: 208 72% 28%;
+    --sidebar-background: 208 72% 28% / 0.8;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 261 73% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 208 72% 38%;
+    --sidebar-accent: 208 72% 38% / 0.8;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 208 72% 38%;
     --sidebar-ring: 217.2 91.2% 59.8%;
@@ -67,11 +67,11 @@
     --chart-5: 340 75% 55%;
 
     /* Sidebar Dark Theme */
-    --sidebar-background: 208 72% 28%;
+    --sidebar-background: 208 72% 28% / 0.8;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 261 73% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 208 72% 38%;
+    --sidebar-accent: 208 72% 38% / 0.8;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 208 72% 38%;
     --sidebar-ring: 217.2 91.2% 59.8%;
