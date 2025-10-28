@@ -54,11 +54,12 @@ import AddInfluencerDialog from "@/components/add-influencer-dialog";
 import LogCampaignDialog from "@/components/log-campaign-dialog";
 import { format, isPast } from "date-fns";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const platformIcons: Record<Platform, React.ReactNode> = {
   YouTube: <Youtube className="h-4 w-4 text-red-500" />,
@@ -261,48 +262,60 @@ export default function DashboardPage() {
              </div>
 
             {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {filteredInfluencers.map(influencer => (
-                        <Card key={influencer.id}>
-                          <Accordion type="single" collapsible>
-                            <AccordionItem value="item-1" className="border-b-0">
-                                <AccordionTrigger className="p-6 hover:no-underline">
-                                    <div className="flex flex-row items-center gap-4">
-                                        <Avatar className="h-12 w-12">
-                                            <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person portrait" />
-                                            <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <CardTitle className="font-headline text-lg text-left">{influencer.name}</CardTitle>
-                                            <p className="text-sm text-muted-foreground text-left">@{influencer.handle}</p>
-                                        </div>
-                                    </div>
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                    <CardContent className="pt-0 space-y-4">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            {platformIcons[influencer.platform]}
-                                            <Badge variant="secondary">{influencer.category}</Badge>
-                                            <Badge variant="outline">{influencer.region}</Badge>
-                                        </div>
-                                        <Separator />
-                                        <div className="space-y-2 text-sm">
-                                          <p><strong className="font-medium">Last Price Paid:</strong> ${influencer.lastPricePaid.toLocaleString()}</p>
-                                          <p><strong className="font-medium">Avg. Views:</strong> {influencer.averageViews.toLocaleString()}</p>
-                                          <div className="flex items-center">
-                                            <strong className="font-medium mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
-                                            {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
-                                          </div>
-                                          <p><strong className="font-medium">Email:</strong> {maskSensitiveData(influencer.email, userRole)}</p>
-                                          <p><strong className="font-medium">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
-                                        </div>
-                                    </CardContent>
-                                </AccordionContent>
-                            </AccordionItem>
-                          </Accordion>
-                        </Card>
-                    ))}
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredInfluencers.map(influencer => (
+                  <Dialog key={influencer.id}>
+                    <DialogTrigger asChild>
+                      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                        <CardHeader>
+                          <div className="flex flex-row items-center gap-4">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person portrait" />
+                              <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <CardTitle className="font-headline text-lg">{influencer.name}</CardTitle>
+                              <p className="text-sm text-muted-foreground">@{influencer.handle}</p>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                         <div className="flex flex-row items-center gap-4">
+                            <Avatar className="h-16 w-16">
+                                <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person portrait" />
+                                <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <DialogTitle className="font-headline text-2xl">{influencer.name}</DialogTitle>
+                                <p className="text-base text-muted-foreground">@{influencer.handle}</p>
+                            </div>
+                        </div>
+                      </DialogHeader>
+                        <div className="pt-4 space-y-4">
+                            <div className="flex items-center gap-2 text-sm">
+                                {platformIcons[influencer.platform]}
+                                <Badge variant="secondary">{influencer.category}</Badge>
+                                <Badge variant="outline">{influencer.region}</Badge>
+                            </div>
+                            <Separator />
+                            <div className="space-y-2 text-sm">
+                              <p><strong className="font-medium">Last Price Paid:</strong> ${influencer.lastPricePaid.toLocaleString()}</p>
+                              <p><strong className="font-medium">Avg. Views:</strong> {influencer.averageViews.toLocaleString()}</p>
+                              <div className="flex items-center">
+                                <strong className="font-medium mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
+                                {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
+                              </div>
+                              <p><strong className="font-medium">Email:</strong> {maskSensitiveData(influencer.email, userRole)}</p>
+                              <p><strong className="font-medium">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
+                            </div>
+                        </div>
+                    </DialogContent>
+                  </Dialog>
+                ))}
+              </div>
             ) : (
                 <Card>
                     <Table>
@@ -370,5 +383,3 @@ export default function DashboardPage() {
     </SidebarProvider>
   );
 }
-
-    
