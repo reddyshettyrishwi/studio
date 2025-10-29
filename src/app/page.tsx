@@ -384,8 +384,7 @@ function Dashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredInfluencers.map(influencer => (
-                                <TableRow key={influencer.id}>
+                            {filteredInfluencers.map(influencer => (<TableRow key={influencer.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-9 w-9">
@@ -399,14 +398,14 @@ function Dashboard() {
                                     <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>
                                     <TableCell>${influencer.lastPricePaid.toLocaleString()}</TableCell>
                                     <TableCell>{influencer.averageViews.toLocaleString()}</TableCell>
-                                    <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>                                    <TableCell>
+                                    <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>
+                                    <TableCell>
                                       <div className="flex items-center">
                                         {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
                                         {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
                                       </div>
                                     </TableCell>
-                                </TableRow>
-                            ))}
+                                </TableRow>))}
                         </TableBody>
                     </Table>
                 </Card>
@@ -445,5 +444,3 @@ export default function DashboardPage() {
     </React.Suspense>
   );
 }
-
-    
