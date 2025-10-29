@@ -38,11 +38,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import LogCampaignDialog from "@/components/log-campaign-dialog";
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
   const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [isLogCampaignOpen, setLogCampaignOpen] = React.useState(false);
 
   const filteredCampaigns = React.useMemo(() => {
     return campaigns.filter(campaign =>
@@ -53,6 +55,14 @@ export default function CampaignsPage() {
   const getInfluencerById = (id: string) => {
     return influencers.find(influencer => influencer.id === id);
   }
+  
+  const logCampaign = (newCampaign: Omit<Campaign, 'id'>) => {
+    const campaignToAdd: Campaign = {
+      ...newCampaign,
+      id: `camp-${Date.now()}`
+    };
+    setCampaigns(prev => [campaignToAdd, ...prev]);
+  };
 
   return (
     <SidebarProvider>
@@ -115,7 +125,7 @@ export default function CampaignsPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <Button><Plus className="mr-2 h-4 w-4" /> Create Campaign</Button>
+                    <Button onClick={() => setLogCampaignOpen(true)}><Plus className="mr-2 h-4 w-4" /> Create Campaign</Button>
                 </div>
             </div>
             
@@ -168,6 +178,12 @@ export default function CampaignsPage() {
             </Card>
         </main>
       </SidebarInset>
+       <LogCampaignDialog
+          isOpen={isLogCampaignOpen}
+          onClose={() => setLogCampaignOpen(false)}
+          onLogCampaign={logCampaign}
+          influencers={influencers}
+        />
     </SidebarProvider>
   );
 }
