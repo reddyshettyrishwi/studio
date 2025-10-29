@@ -99,8 +99,8 @@
     background-image: 
       radial-gradient(circle at top left, hsl(var(--primary) / 0.1), transparent 30%), 
       radial-gradient(circle at bottom right, hsl(var(--accent) / 0.1), transparent 30%),
-      radial-gradient(ellipse 1px 1px at 25% 20%, hsl(var(--primary)/0.2), transparent),
-      radial-gradient(ellipse 1px 1px at 75% 80%, hsl(var(--accent)/0.2), transparent);
+      radial-gradient(ellipse 2px 2px at 25% 20%, hsl(var(--primary)/0.3), transparent),
+      radial-gradient(ellipse 2px 2px at 75% 80%, hsl(var(--accent)/0.3), transparent);
     background-size: 100% 100%, 100% 100%, 80px 80px, 80px 80px;
     animation: move-particles 20s linear infinite;
   }
