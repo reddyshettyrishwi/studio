@@ -31,7 +31,7 @@
     --radius: 0.75rem;
 
     /* Sidebar Theme */
-    --sidebar-background: 240 5% 15% / 0.6;
+    --sidebar-background: 240 5% 15% / 0;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 217 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -68,7 +68,7 @@
     --chart-5: 340 75% 55%;
 
     /* Sidebar Dark Theme */
-    --sidebar-background: 240 5% 15% / 0.6;
+    --sidebar-background: 240 5% 15% / 0;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 217 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
