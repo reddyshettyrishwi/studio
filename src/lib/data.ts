@@ -206,7 +206,7 @@ export const campaigns: Campaign[] = [
     pricePaid: 3500,
     averageViews: 80000,
     influencerId: 'inf-2',
-    approved: true,
+    approvalStatus: 'Approved',
   },
   {
     id: 'camp-2',
@@ -217,7 +217,7 @@ export const campaigns: Campaign[] = [
     pricePaid: 5000,
     averageViews: 150000,
     influencerId: 'inf-1',
-    approved: false,
+    approvalStatus: 'Pending',
   },
   {
     id: 'camp-3',
@@ -228,7 +228,7 @@ export const campaigns: Campaign[] = [
     pricePaid: 2000,
     averageViews: 500000,
     influencerId: 'inf-3',
-    approved: true,
+    approvalStatus: 'Approved',
   },
   {
     id: 'camp-4',
@@ -239,7 +239,7 @@ export const campaigns: Campaign[] = [
     pricePaid: 4200,
     averageViews: 45000,
     influencerId: 'inf-4',
-    approved: true,
+    approvalStatus: 'Approved',
   },
   {
     id: 'camp-5',
@@ -250,7 +250,7 @@ export const campaigns: Campaign[] = [
     pricePaid: 6000,
     averageViews: 250000,
     influencerId: 'inf-5',
-    approved: false,
+    approvalStatus: 'Rejected',
   },
   {
     id: 'camp-6',
@@ -261,6 +261,6 @@ export const campaigns: Campaign[] = [
     pricePaid: 2800,
     averageViews: 120000,
     influencerId: 'inf-6',
-    approved: true,
+    approvalStatus: 'Approved',
   },
 ];

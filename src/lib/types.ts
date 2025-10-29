@@ -1,6 +1,9 @@
+
 export type UserRole = 'Level 1' | 'Level 2' | 'Level 3';
 
 export type Platform = 'YouTube' | 'Instagram' | 'Twitter' | 'TikTok';
+
+export type ApprovalStatus = 'Approved' | 'Pending' | 'Rejected';
 
 export type Influencer = {
   id: string;
@@ -34,5 +37,5 @@ export type Campaign = {
   pricePaid: number;
   averageViews: number;
   influencerId: string;
-  approved: boolean;
+  approvalStatus: ApprovalStatus;
 };

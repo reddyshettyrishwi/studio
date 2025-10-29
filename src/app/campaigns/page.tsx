@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   LogOut,
   Megaphone,
@@ -10,7 +11,7 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import { Campaign, Influencer } from "@/lib/types";
+import { Campaign, Influencer, ApprovalStatus, UserRole } from "@/lib/types";
 import { campaigns as initialCampaigns, influencers as initialInfluencers } from "@/lib/data";
 import {
   SidebarProvider,
@@ -37,14 +38,35 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 import LogCampaignDialog from "@/components/log-campaign-dialog";
 
-export default function CampaignsPage() {
+const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
+  const variant = {
+    Approved: "default",
+    Pending: "secondary",
+    Rejected: "destructive",
+  }[status] as "default" | "secondary" | "destructive" | "outline" | null | undefined;
+
+  return <Badge variant={variant}>{status}</Badge>;
+};
+
+function Campaigns() {
+  const searchParams = useSearchParams();
+  const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
+
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
   const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLogCampaignOpen, setLogCampaignOpen] = React.useState(false);
+  const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
 
   const filteredCampaigns = React.useMemo(() => {
     return campaigns.filter(campaign =>
@@ -56,12 +78,21 @@ export default function CampaignsPage() {
     return influencers.find(influencer => influencer.id === id);
   }
   
-  const logCampaign = (newCampaign: Omit<Campaign, 'id'>) => {
+  const logCampaign = (newCampaign: Omit<Campaign, 'id' | 'approvalStatus'>) => {
     const campaignToAdd: Campaign = {
       ...newCampaign,
-      id: `camp-${Date.now()}`
+      id: `camp-${Date.now()}`,
+      approvalStatus: 'Pending',
     };
     setCampaigns(prev => [campaignToAdd, ...prev]);
+  };
+
+  const handleStatusChange = (campaignId: string, newStatus: ApprovalStatus) => {
+    setCampaigns(prevCampaigns =>
+      prevCampaigns.map(c =>
+        c.id === campaignId ? { ...c, approvalStatus: newStatus } : c
+      )
+    );
   };
 
   return (
@@ -78,7 +109,7 @@ export default function CampaignsPage() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/" className="w-full">
+              <Link href={`/?role=${userRole}`} className="w-full">
                 <SidebarMenuButton>
                   <Users />
                   Influencers
@@ -86,7 +117,7 @@ export default function CampaignsPage() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href="/campaigns" className="w-full">
+              <Link href={`/campaigns?role=${userRole}`} className="w-full">
                 <SidebarMenuButton isActive>
                   <Megaphone />
                   Campaigns
@@ -164,10 +195,22 @@ export default function CampaignsPage() {
                         <TableCell>{format(new Date(campaign.date), 'dd MMM yyyy')}</TableCell>
                         <TableCell className="text-muted-foreground">{campaign.deliverables}</TableCell>
                         <TableCell>
-                          {campaign.approved ? (
-                            <Badge>Approved</Badge>
+                          {userRole === 'Level 2' ? (
+                            <Select
+                              value={campaign.approvalStatus}
+                              onValueChange={(newStatus: ApprovalStatus) => handleStatusChange(campaign.id, newStatus)}
+                            >
+                              <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Approved">Approved</SelectItem>
+                                <SelectItem value="Pending">Pending</SelectItem>
+                                <SelectItem value="Rejected">Rejected</SelectItem>
+                              </SelectContent>
+                            </Select>
                           ) : (
-                            <Badge variant="secondary">Pending</Badge>
+                            <StatusBadge status={campaign.approvalStatus} />
                           )}
                         </TableCell>
                       </TableRow>
@@ -185,5 +228,14 @@ export default function CampaignsPage() {
           influencers={influencers}
         />
     </SidebarProvider>
+  );
+}
+
+// Wrap the main component in a Suspense boundary
+export default function CampaignsPage() {
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <Campaigns />
+    </React.Suspense>
   );
 }

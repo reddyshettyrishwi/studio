@@ -110,7 +110,7 @@ function Dashboard() {
   // Analytics data
   const totalInfluencers = influencers.length;
   const totalCampaigns = campaigns.length;
-  const approvedCampaigns = campaigns.filter(c => c.approved).length;
+  const approvedCampaigns = campaigns.filter(c => c.approvalStatus === 'Approved').length;
 
   const handleFilterChange = (type: keyof typeof filters, value: string) => {
     setFilters(prev => {
@@ -178,7 +178,7 @@ function Dashboard() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href="/" className="w-full">
+              <Link href={`/?role=${userRole}`} className="w-full">
                 <SidebarMenuButton isActive>
                   <Users />
                   Influencers
@@ -186,7 +186,7 @@ function Dashboard() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href="/campaigns" className="w-full">
+              <Link href={`/campaigns?role=${userRole}`} className="w-full">
                 <SidebarMenuButton>
                   <Megaphone />
                   Campaigns
@@ -384,7 +384,8 @@ function Dashboard() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredInfluencers.map(influencer => (<TableRow key={influencer.id}>
+                            {filteredInfluencers.map(influencer => (
+                              <TableRow key={influencer.id}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-9 w-9">
@@ -405,7 +406,8 @@ function Dashboard() {
                                         {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
                                       </div>
                                     </TableCell>
-                                </TableRow>))}
+                                </TableRow>
+                            ))}
                         </TableBody>
                     </Table>
                 </Card>
