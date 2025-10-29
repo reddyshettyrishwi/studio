@@ -343,7 +343,8 @@ function Dashboard() {
                             </Avatar>
                             <div>
                                 <DialogTitle className="font-headline text-2xl">{influencer.name}</DialogTitle>
-                                <p className="text-base text-muted-foreground">@{influencer.handle}</p>
+                                <p className="text-sm text-muted-foreground">@{influencer.handle}</p>
+                                <p className="text-base text-muted-foreground">{influencer.channelName}</p>
                             </div>
                         </div>
                       </DialogHeader>
@@ -355,6 +356,7 @@ function Dashboard() {
                             </div>
                             <Separator />
                             <div className="space-y-2 text-sm">
+                              <p><strong className="font-bold">Channel Link:</strong> <a href={influencer.channelLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{influencer.channelLink}</a></p>
                               <p><strong className="font-bold">Last Price Paid:</strong> ${influencer.lastPricePaid.toLocaleString()}</p>
                               <p><strong className="font-bold">Avg. Views:</strong> {influencer.averageViews.toLocaleString()}</p>
                               <div className="flex items-center">
@@ -375,6 +377,7 @@ function Dashboard() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
+                                <TableHead>Channel</TableHead>
                                 <TableHead>Platform</TableHead>
                                 <TableHead>Category</TableHead>
                                 <TableHead>Last Price Paid</TableHead>
@@ -394,6 +397,10 @@ function Dashboard() {
                                             </Avatar>
                                             <div className="font-medium">{influencer.name}</div>
                                         </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="font-medium">{influencer.channelName}</div>
+                                      <a href={influencer.channelLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">@{influencer.handle}</a>
                                     </TableCell>
                                     <TableCell>{platformIcons[influencer.platform]} {influencer.platform}</TableCell>
                                     <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>

@@ -9,6 +9,7 @@ export type Influencer = {
   id: string;
   name: string;
   platform: Platform;
+  channelName: string;
   category: string;
   language: string;
   region: string;
