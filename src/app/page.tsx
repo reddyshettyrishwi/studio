@@ -293,7 +293,7 @@ function Dashboard() {
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <div className="flex items-center gap-2 bg-muted p-1 rounded-md">
+                    <div className="flex items-center gap-1 bg-secondary/50 backdrop-blur-sm p-1 rounded-md">
                         <Button variant={viewMode === 'grid' ? "secondary" : "ghost"} size="icon" onClick={() => setViewMode('grid')}>
                             <LayoutGrid className="h-5 w-5"/>
                         </Button>
