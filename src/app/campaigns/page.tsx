@@ -207,13 +207,13 @@ function Campaigns() {
                               value={campaign.approvalStatus}
                               onValueChange={(newStatus: ApprovalStatus) => handleStatusChange(campaign.id, newStatus)}
                             >
-                              <SelectTrigger className={cn("w-[120px] border-0", statusColors[campaign.approvalStatus])}>
+                              <SelectTrigger className="w-[120px]">
                                 <SelectValue placeholder="Status" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Approved" className="text-success-foreground bg-success/50 focus:bg-success/80 focus:text-success-foreground">Approved</SelectItem>
-                                <SelectItem value="Pending" className="text-warning-foreground bg-warning/50 focus:bg-warning/80 focus:text-warning-foreground">Pending</SelectItem>
-                                <SelectItem value="Rejected" className="text-destructive-foreground bg-destructive/50 focus:bg-destructive/80 focus:text-destructive-foreground">Rejected</SelectItem>
+                                <SelectItem value="Approved">Approved</SelectItem>
+                                <SelectItem value="Pending">Pending</SelectItem>
+                                <SelectItem value="Rejected">Rejected</SelectItem>
                               </SelectContent>
                             </Select>
                           ) : (
