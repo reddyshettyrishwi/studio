@@ -30,7 +30,7 @@ const ParticleField = () => {
       constructor() {
         this.x = Math.random() * canvas.width;
         this.y = Math.random() * canvas.height;
-        this.size = Math.random() * 3 + 1;
+        this.size = Math.random() * 6 + 2;
         this.speedX = Math.random() * 1 - 0.5;
         this.speedY = Math.random() * 1 - 0.5;
         this.color = 'hsl(217 91% 60% / 0.5)';
@@ -40,12 +40,12 @@ const ParticleField = () => {
         this.x += this.speedX;
         this.y += this.speedY;
 
-        if (this.size > 0.1) this.size -= 0.01;
+        if (this.size > 0.2) this.size -= 0.02;
 
         if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
             this.x = Math.random() * canvas.width;
             this.y = Math.random() * canvas.height;
-            this.size = Math.random() * 3 + 1;
+            this.size = Math.random() * 6 + 2;
             this.speedX = Math.random() * 1 - 0.5;
             this.speedY = Math.random() * 1 - 0.5;
         }
@@ -79,13 +79,15 @@ const ParticleField = () => {
     init();
     animate();
 
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
         resizeCanvas();
         init();
-    });
+    }
+
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
