@@ -59,15 +59,9 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   return <Badge variant={variant}>{status}</Badge>;
 };
 
-const statusColors: Record<ApprovalStatus, string> = {
-  Approved: "text-success-foreground bg-success hover:bg-success/80",
-  Pending: "text-warning-foreground bg-warning hover:bg-warning/80",
-  Rejected: "text-destructive-foreground bg-destructive hover:bg-destructive/80",
-};
-
 function Campaigns() {
   const searchParams = useSearchParams();
-  const initialRole = (searchParams.get('role') as UserRole) | "Level 2";
+  const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
 
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
   const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
