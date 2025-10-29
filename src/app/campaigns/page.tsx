@@ -50,10 +50,10 @@ import LogCampaignDialog from "@/components/log-campaign-dialog";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   const variant = {
-    Approved: "default",
-    Pending: "secondary",
+    Approved: "success",
+    Pending: "warning",
     Rejected: "destructive",
-  }[status] as "default" | "secondary" | "destructive" | "outline" | null | undefined;
+  }[status] as "success" | "warning" | "destructive" | "default" | "secondary" | "outline" | null | undefined;
 
   return <Badge variant={variant}>{status}</Badge>;
 };
