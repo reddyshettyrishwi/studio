@@ -86,38 +86,4 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1;
-    background-color: hsl(var(--background));
-    background-image: 
-      radial-gradient(circle 80px at top left, hsl(var(--primary) / 0.2), transparent 40%), 
-      radial-gradient(circle 120px at bottom right, hsl(var(--accent) / 0.2), transparent 40%);
-    background-repeat: no-repeat;
-    animation: move-particles 20s linear infinite;
-  }
-}
-
-@keyframes move-particles {
-  0% {
-    background-position: -20% -20%, 120% 120%;
-  }
-  25% {
-    background-position: 120% -20%, -20% 120%;
-  }
-  50% {
-    background-position: 120% 120%, -20% -20%;
-  }
-  75% {
-    background-position: -20% 120%, 120% -20%;
-  }
-  100% {
-    background-position: -20% -20%, 120% 120%;
-  }
 }
