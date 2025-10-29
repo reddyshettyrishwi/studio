@@ -19,7 +19,6 @@ import {
   Youtube,
   Twitter,
   CheckCircle,
-  Clock,
 } from "lucide-react";
 import { Influencer, Campaign, UserRole, Platform } from "@/lib/types";
 import { influencers as initialInfluencers, campaigns as initialCampaigns } from "@/lib/data";
