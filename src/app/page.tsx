@@ -65,7 +65,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import ParticleField from "@/components/particle-field";
 
 const platformIcons: Record<Platform, React.ReactNode> = {
   YouTube: <Youtube className="h-4 w-4 text-red-500" />,
@@ -211,7 +210,6 @@ function Dashboard() {
       </Sidebar>
       <SidebarInset className="max-h-screen overflow-auto">
         <main className="p-4 md:p-6 relative">
-          <ParticleField />
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
                 <div className="flex items-center gap-4">
                     <SidebarTrigger className="md:hidden" />
