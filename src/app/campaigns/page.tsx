@@ -202,12 +202,12 @@ function Campaigns() {
                         <TableCell>{format(new Date(campaign.date), 'dd MMM yyyy')}</TableCell>
                         <TableCell className="text-muted-foreground">{campaign.deliverables}</TableCell>
                         <TableCell>
-                          {userRole === 'Level 2' ? (
+                           {userRole === 'Level 2' ? (
                             <Select
                               value={campaign.approvalStatus}
                               onValueChange={(newStatus: ApprovalStatus) => handleStatusChange(campaign.id, newStatus)}
                             >
-                              <SelectTrigger className={cn("w-[120px]", statusColors[campaign.approvalStatus])}>
+                              <SelectTrigger className={cn("w-[120px] border-0", statusColors[campaign.approvalStatus])}>
                                 <SelectValue placeholder="Status" />
                               </SelectTrigger>
                               <SelectContent>
