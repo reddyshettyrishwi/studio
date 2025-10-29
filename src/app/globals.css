@@ -97,8 +97,8 @@
     z-index: -1;
     background-color: hsl(var(--background));
     background-image: 
-      radial-gradient(circle 100px at top left, hsl(var(--primary) / 0.2), transparent 40%), 
-      radial-gradient(circle 100px at bottom right, hsl(var(--accent) / 0.2), transparent 40%);
+      radial-gradient(circle 80px at top left, hsl(var(--primary) / 0.2), transparent 40%), 
+      radial-gradient(circle 120px at bottom right, hsl(var(--accent) / 0.2), transparent 40%);
     background-repeat: no-repeat;
     animation: move-particles 20s linear infinite;
   }
