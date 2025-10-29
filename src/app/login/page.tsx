@@ -19,16 +19,18 @@ import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [selectedRole, setSelectedRole] = React.useState<UserRole>("Level 2");
 
-  const handleSignIn = (level: UserRole) => {
+  const handleSignIn = () => {
     if (password === "123456") {
-      router.push(`/?role=${level}`);
+      router.push(`/?role=${selectedRole}`);
     } else {
       toast({
         variant: "destructive",
@@ -64,11 +66,45 @@ export default function LoginPage() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <Button variant="outline" onClick={() => handleSignIn("Level 1")}>Level 1</Button>
-            <Button variant="outline" onClick={() => handleSignIn("Level 2")}>Level 2</Button>
-            <Button variant="outline" onClick={() => handleSignIn("Level 3")}>Level 3</Button>
+          <div className="grid gap-2">
+            <Label>Select Role</Label>
+            <RadioGroup
+              defaultValue="Level 2"
+              className="grid grid-cols-3 gap-4"
+              onValueChange={(value: UserRole) => setSelectedRole(value)}
+            >
+              <div>
+                <RadioGroupItem value="Level 1" id="level1" className="peer sr-only" />
+                <Label
+                  htmlFor="level1"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  Level 1
+                </Label>
+              </div>
+              <div>
+                <RadioGroupItem value="Level 2" id="level2" className="peer sr-only" />
+                <Label
+                  htmlFor="level2"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  Level 2
+                </Label>
+              </div>
+              <div>
+                <RadioGroupItem value="Level 3" id="level3" className="peer sr-only" />
+                <Label
+                  htmlFor="level3"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  Level 3
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
+          <Button onClick={handleSignIn} className="w-full">
+            Sign In
+          </Button>
         </CardContent>
         <CardFooter className="flex-col gap-4">
           <div className="relative w-full">
