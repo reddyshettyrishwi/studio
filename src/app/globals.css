@@ -10,7 +10,7 @@
     --card-foreground: 0 0% 95%;
     --popover: 240 10% 4%;
     --popover-foreground: 0 0% 95%;
-    --primary: 261 80% 65%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 15%;
     --secondary-foreground: 0 0% 98%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 5% 25%;
     --input: 240 5% 15% / 0.7;
-    --ring: 261 80% 65%;
+    --ring: 217 91% 60%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -33,7 +33,7 @@
     /* Sidebar Theme */
     --sidebar-background: 240 5% 15% / 0.6;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 261 73% 60%;
+    --sidebar-primary: 217 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 5% 25% / 0.8;
     --sidebar-accent-foreground: 0 0% 98%;
@@ -48,7 +48,7 @@
     --card-foreground: 0 0% 95%;
     --popover: 240 10% 4%;
     --popover-foreground: 0 0% 95%;
-    --primary: 261 80% 65%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 15%;
     --secondary-foreground: 0 0% 98%;
@@ -60,7 +60,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 240 5% 25%;
     --input: 240 5% 15% / 0.7;
-    --ring: 261 80% 65%;
+    --ring: 217 91% 60%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -70,7 +70,7 @@
     /* Sidebar Dark Theme */
     --sidebar-background: 240 5% 15% / 0.6;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 261 73% 60%;
+    --sidebar-primary: 217 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 5% 25% / 0.8;
     --sidebar-accent-foreground: 0 0% 98%;
