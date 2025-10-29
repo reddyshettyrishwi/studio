@@ -5,7 +5,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation'
 import {
-  ChevronsUpDown,
   Filter,
   Globe,
   Instagram,
@@ -218,19 +217,7 @@ function Dashboard() {
                 </div>
                  <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Viewing as:</span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          {userRole}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuCheckboxItem checked={userRole === 'Level 1'} onCheckedChange={() => setUserRole('Level 1')}>Level 1</DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem checked={userRole === 'Level 2'} onCheckedChange={() => setUserRole('Level 2')}>Level 2</DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem checked={userRole === 'Level 3'} onCheckedChange={() => setUserRole('Level 3')}>Level 3</DropdownMenuCheckboxItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Badge variant="outline">{userRole}</Badge>
                 </div>
             </div>
 
@@ -285,7 +272,6 @@ function Dashboard() {
                         <Button variant="outline" className="w-full md:w-auto justify-start">
                           <Filter className="mr-2 h-4 w-4"/>
                           Filters
-                          <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50"/>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent className="w-56" align="end">
@@ -459,3 +445,5 @@ export default function DashboardPage() {
     </React.Suspense>
   );
 }
+
+    
