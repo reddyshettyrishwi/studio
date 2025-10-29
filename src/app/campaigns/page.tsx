@@ -96,6 +96,15 @@ function Campaigns() {
     );
   };
 
+  const StatusCircle = ({ status }: { status: ApprovalStatus }) => {
+    const color = {
+      Approved: 'bg-green-500',
+      Pending: 'bg-yellow-500',
+      Rejected: 'bg-red-500',
+    }[status];
+    return <div className={cn('h-2.5 w-2.5 rounded-full', color)} />;
+  };
+  
   return (
     <SidebarProvider>
       <Sidebar>
@@ -201,13 +210,31 @@ function Campaigns() {
                               value={campaign.approvalStatus}
                               onValueChange={(newStatus: ApprovalStatus) => handleStatusChange(campaign.id, newStatus)}
                             >
-                              <SelectTrigger className="w-[120px]">
-                                <SelectValue placeholder="Status" />
+                              <SelectTrigger className="w-[140px]">
+                                <div className="flex items-center gap-2">
+                                  <StatusCircle status={campaign.approvalStatus} />
+                                  <SelectValue placeholder="Status" />
+                                </div>
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Approved">Approved</SelectItem>
-                                <SelectItem value="Pending">Pending</SelectItem>
-                                <SelectItem value="Rejected">Rejected</SelectItem>
+                                <SelectItem value="Approved">
+                                  <div className="flex items-center gap-2">
+                                    <StatusCircle status="Approved" />
+                                    Approved
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="Pending">
+                                   <div className="flex items-center gap-2">
+                                    <StatusCircle status="Pending" />
+                                    Pending
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="Rejected">
+                                   <div className="flex items-center gap-2">
+                                    <StatusCircle status="Rejected" />
+                                    Rejected
+                                  </div>
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           ) : (
