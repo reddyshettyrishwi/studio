@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import LogCampaignDialog from "@/components/log-campaign-dialog";
+import { cn } from "@/lib/utils";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   const variant = {
@@ -58,9 +59,15 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   return <Badge variant={variant}>{status}</Badge>;
 };
 
+const statusColors: Record<ApprovalStatus, string> = {
+  Approved: "text-success-foreground bg-success hover:bg-success/80",
+  Pending: "text-warning-foreground bg-warning hover:bg-warning/80",
+  Rejected: "text-destructive-foreground bg-destructive hover:bg-destructive/80",
+};
+
 function Campaigns() {
   const searchParams = useSearchParams();
-  const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
+  const initialRole = (searchParams.get('role') as UserRole) | "Level 2";
 
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
   const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
@@ -200,13 +207,13 @@ function Campaigns() {
                               value={campaign.approvalStatus}
                               onValueChange={(newStatus: ApprovalStatus) => handleStatusChange(campaign.id, newStatus)}
                             >
-                              <SelectTrigger className="w-[120px]">
+                              <SelectTrigger className={cn("w-[120px]", statusColors[campaign.approvalStatus])}>
                                 <SelectValue placeholder="Status" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Approved">Approved</SelectItem>
-                                <SelectItem value="Pending">Pending</SelectItem>
-                                <SelectItem value="Rejected">Rejected</SelectItem>
+                                <SelectItem value="Approved" className="text-success-foreground bg-success/50 focus:bg-success/80 focus:text-success-foreground">Approved</SelectItem>
+                                <SelectItem value="Pending" className="text-warning-foreground bg-warning/50 focus:bg-warning/80 focus:text-warning-foreground">Pending</SelectItem>
+                                <SelectItem value="Rejected" className="text-destructive-foreground bg-destructive/50 focus:bg-destructive/80 focus:text-destructive-foreground">Rejected</SelectItem>
                               </SelectContent>
                             </Select>
                           ) : (
