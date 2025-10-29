@@ -56,7 +56,21 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
     Rejected: "destructive",
   }[status] as "success" | "warning" | "destructive" | "default" | "secondary" | "outline" | null | undefined;
 
-  return <Badge variant={variant}>{status}</Badge>;
+  const StatusCircle = ({ status }: { status: ApprovalStatus }) => {
+    const color = {
+      Approved: 'bg-green-500',
+      Pending: 'bg-yellow-500',
+      Rejected: 'bg-red-500',
+    }[status];
+    return <div className={cn('h-2.5 w-2.5 rounded-full', color)} />;
+  };
+
+  return (
+    <Badge variant={variant} className="flex items-center gap-2">
+      <StatusCircle status={status} />
+      {status}
+    </Badge>
+  );
 };
 
 function Campaigns() {
