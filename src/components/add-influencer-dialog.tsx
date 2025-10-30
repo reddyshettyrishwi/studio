@@ -216,7 +216,7 @@ export default function AddInfluencerDialog({
               <FormField name="mobile" control={control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mobile Number</FormLabel>
-                    <FormControl><Input placeholder="+1-555-555-5555" {...field} /></FormControl>
+                    <FormControl><Input placeholder="+91-9876543210" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -410,8 +410,8 @@ export default function AddInfluencerDialog({
               />
               <FormField name="lastPricePaid" control={control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Price Paid ($)</FormLabel>
-                    <FormControl><Input type="number" placeholder="5000" {...field} /></FormControl>
+                    <FormLabel>Last Price Paid (₹)</FormLabel>
+                    <FormControl><Input type="number" placeholder="400000" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

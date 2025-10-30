@@ -244,7 +244,7 @@ function Campaigns() {
                           ) : 'N/A'}
                         </TableCell>
                         <TableCell><Badge variant="outline">{campaign.department}</Badge></TableCell>
-                        <TableCell>${campaign.pricePaid.toLocaleString()}</TableCell>
+                        <TableCell>₹{campaign.pricePaid.toLocaleString('en-IN')}</TableCell>
                         <TableCell>{format(new Date(campaign.date), 'dd MMM yyyy')}</TableCell>
                         <TableCell className="text-muted-foreground">{campaign.deliverables}</TableCell>
                         <TableCell>

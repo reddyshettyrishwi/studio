@@ -180,8 +180,8 @@ export default function LogCampaignDialog({
             />
              <FormField name="pricePaid" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price Paid ($)</FormLabel>
-                    <FormControl><Input type="number" placeholder="5000" {...field} /></FormControl>
+                    <FormLabel>Price Paid (₹)</FormLabel>
+                    <FormControl><Input type="number" placeholder="400000" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
