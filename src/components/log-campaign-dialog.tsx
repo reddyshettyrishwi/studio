@@ -43,7 +43,7 @@ const campaignSchema = z.object({
   department: z.string().min(1, "Department is required."),
   deliverables: z.string().min(1, "Deliverables are required."),
   date: z.string().min(1, "Campaign date is required."),
-  pricePaid: z.coerce.number().positive("Price must be a positive number."),
+  pricePaid: z.coerce.number().positive("Amount must be a positive number."),
 });
 
 type LogCampaignFormValues = z.infer<typeof campaignSchema>;
@@ -180,7 +180,7 @@ export default function LogCampaignDialog({
             />
              <FormField name="pricePaid" control={form.control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price Paid (₹)</FormLabel>
+                    <FormLabel>Amount (₹)</FormLabel>
                     <FormControl><Input type="number" placeholder="400000" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>

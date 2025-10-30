@@ -220,7 +220,7 @@ function Campaigns() {
                     <TableHead>Campaign Name</TableHead>
                     <TableHead>Influencer</TableHead>
                     <TableHead>Department</TableHead>
-                    <TableHead>Price Paid</TableHead>
+                    <TableHead>Amount</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Deliverables</TableHead>
                     <TableHead>Approval Status</TableHead>
