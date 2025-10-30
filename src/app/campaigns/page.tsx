@@ -127,10 +127,9 @@ function Campaigns() {
         <SidebarContent>
            <div className="p-4">
               <div className="flex items-center gap-4">
-                <Avatar className="h-12 w-12 border-2 border-primary">
-                  <AvatarImage src="https://picsum.photos/seed/user/100/100" alt="User" data-ai-hint="person face" />
-                  <AvatarFallback>
-                    <UserRound />
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback className="bg-primary/20 text-primary">
+                    <UserRound className="h-6 w-6" />
                   </AvatarFallback>
                 </Avatar>
                 <div>
