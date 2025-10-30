@@ -19,7 +19,6 @@ export type Influencer = {
   platforms: PlatformDetails[];
   category: string;
   language: string;
-  region: string;
   email: string;
   mobile: string;
   pan: string; // Faking PAN as a string

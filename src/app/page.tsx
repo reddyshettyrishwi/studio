@@ -94,18 +94,15 @@ function Influencers() {
 
   const [filters, setFilters] = React.useState<{
     category: Set<string>;
-    region: Set<string>;
     language: Set<string>;
   }>({
     category: new Set(),
-    region: new Set(),
     language: new Set(),
   });
   
   const [isAddInfluencerOpen, setAddInfluencerOpen] = React.useState(false);
 
   const categories = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.category))], []);
-  const regions = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.region))], []);
   const languages = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.language))], []);
 
   const handleFilterChange = (type: keyof typeof filters, value: string) => {
@@ -128,10 +125,9 @@ function Influencers() {
         influencer.platforms.some(p => p.handle.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const categoryMatch = filters.category.size === 0 || filters.category.has(influencer.category);
-      const regionMatch = filters.region.size === 0 || filters.region.has(influencer.region);
       const languageMatch = filters.language.size === 0 || filters.language.has(influencer.language);
 
-      return searchMatch && categoryMatch && regionMatch && languageMatch;
+      return searchMatch && categoryMatch && languageMatch;
     });
   }, [influencers, searchQuery, filters]);
 
@@ -257,11 +253,6 @@ function Influencers() {
                         {categories.map(cat => (
                             <DropdownMenuCheckboxItem key={cat} checked={filters.category.has(cat)} onCheckedChange={() => handleFilterChange('category', cat)}>{cat}</DropdownMenuCheckboxItem>
                         ))}
-                        <DropdownMenuLabel>Region</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {regions.map(reg => (
-                            <DropdownMenuCheckboxItem key={reg} checked={filters.region.has(reg)} onCheckedChange={() => handleFilterChange('region', reg)}>{reg}</DropdownMenuCheckboxItem>
-                        ))}
                          <DropdownMenuLabel>Language</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         {languages.map(lang => (
@@ -333,7 +324,6 @@ function Influencers() {
                         <div className="pt-4 space-y-4">
                             <div className="flex items-center gap-2 text-sm flex-wrap">
                                 <Badge variant="secondary">{influencer.category}</Badge>
-                                <Badge variant="outline">{influencer.region}</Badge>
                                 <Badge variant="outline">{influencer.language}</Badge>
                             </div>
                             <div className="space-y-2 text-sm">

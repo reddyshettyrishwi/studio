@@ -61,7 +61,6 @@ const influencerSchema = z.object({
   platform2: optionalPlatformSchema,
   category: z.string().min(1, "Category is required."),
   language: z.string().min(1, "Language is required."),
-  region: z.string().min(1, "Region is required."),
   email: z.string().email("Please enter a valid email address."),
   mobile: z.string().min(10, "Please enter a valid mobile number."),
   pan: z.string().min(1, "PAN/Legal ID is required."),
@@ -96,7 +95,6 @@ export default function AddInfluencerDialog({
       pan: "",
       category: "",
       language: "",
-      region: "",
       lastPromotionBy: "",
       lastPromotionDate: "",
       lastPricePaid: 0,
@@ -374,7 +372,7 @@ export default function AddInfluencerDialog({
             </div>
 
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField name="category" control={control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category / Niche</FormLabel>
@@ -387,14 +385,6 @@ export default function AddInfluencerDialog({
                   <FormItem>
                     <FormLabel>Language</FormLabel>
                     <FormControl><Input placeholder="e.g., English" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField name="region" control={control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Region</FormLabel>
-                    <FormControl><Input placeholder="e.g., USA, India" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -454,5 +444,3 @@ export default function AddInfluencerDialog({
     </Dialog>
   );
 }
-
-    
