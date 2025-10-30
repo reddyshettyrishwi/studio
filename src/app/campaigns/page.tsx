@@ -126,7 +126,7 @@ function Campaigns() {
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href={`/dashboard?role=${userRole}`} className="w-full">
-                <SidebarMenuButton>
+                <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
                 </SidebarMenuButton>
@@ -134,7 +134,7 @@ function Campaigns() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href={`/?role=${userRole}`} className="w-full">
-                <SidebarMenuButton>
+                <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
                 </SidebarMenuButton>
@@ -142,7 +142,7 @@ function Campaigns() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href={`/campaigns?role=${userRole}`} className="w-full">
-                <SidebarMenuButton isActive>
+                <SidebarMenuButton isActive size="lg">
                   <Megaphone />
                   Campaigns
                 </SidebarMenuButton>
@@ -154,7 +154,7 @@ function Campaigns() {
             <SidebarMenu>
                 <SidebarMenuItem>
                     <Link href="/login" className="w-full">
-                        <SidebarMenuButton>
+                        <SidebarMenuButton size="lg">
                             <LogOut />
                             Log Out
                         </SidebarMenuButton>
@@ -280,3 +280,5 @@ export default function CampaignsPage() {
     </React.Suspense>
   );
 }
+
+    

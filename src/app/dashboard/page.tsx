@@ -91,7 +91,7 @@ function Dashboard() {
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href={`/dashboard?role=${userRole}`} className="w-full">
-                <SidebarMenuButton isActive>
+                <SidebarMenuButton isActive size="lg">
                   <Home />
                   Dashboard
                 </SidebarMenuButton>
@@ -99,7 +99,7 @@ function Dashboard() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href={`/?role=${userRole}`} className="w-full">
-                <SidebarMenuButton>
+                <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
                 </SidebarMenuButton>
@@ -107,7 +107,7 @@ function Dashboard() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href={`/campaigns?role=${userRole}`} className="w-full">
-                <SidebarMenuButton>
+                <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
                 </SidebarMenuButton>
@@ -119,7 +119,7 @@ function Dashboard() {
             <SidebarMenu>
                 <SidebarMenuItem>
                     <Link href="/login" className="w-full">
-                        <SidebarMenuButton>
+                        <SidebarMenuButton size="lg">
                             <LogOut />
                             Log Out
                         </SidebarMenuButton>
@@ -230,3 +230,5 @@ export default function DashboardPage() {
   );
 }
 
+
+    
