@@ -16,7 +16,6 @@ import {
   Search,
   Users,
   Youtube,
-  Twitter,
   CheckCircle,
 } from "lucide-react";
 import { Influencer, Campaign, UserRole, Platform } from "@/lib/types";
@@ -69,8 +68,6 @@ import {
 const platformIcons: Record<Platform, React.ReactNode> = {
   YouTube: <Youtube className="h-4 w-4 text-red-500" />,
   Instagram: <Instagram className="h-4 w-4 text-pink-500" />,
-  Twitter: <Twitter className="h-4 w-4 text-sky-500" />,
-  TikTok: <Globe className="h-4 w-4" />,
 };
 
 const maskSensitiveData = (data: string, role: UserRole) => {

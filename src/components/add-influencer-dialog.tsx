@@ -37,7 +37,7 @@ import { detectDuplicateInfluencers, DetectDuplicateInfluencersOutput } from "@/
 
 const influencerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  platform: z.enum(["YouTube", "Instagram", "Twitter", "TikTok"]),
+  platform: z.enum(["YouTube", "Instagram"]),
   category: z.string().min(1, "Category is required."),
   language: z.string().min(1, "Language is required."),
   region: z.string().min(1, "Region is required."),
@@ -50,6 +50,7 @@ const influencerSchema = z.object({
   lastPromotionDate: z.string().min(1, "Required field."),
   lastPricePaid: z.coerce.number().positive("Price must be a positive number."),
   averageViews: z.coerce.number().positive("Views must be a positive number."),
+  channelName: z.string().min(1, "Channel name is required."),
 });
 
 type AddInfluencerFormValues = z.infer<typeof influencerSchema>;
@@ -160,6 +161,14 @@ export default function AddInfluencerDialog({
                   </FormItem>
                 )}
               />
+                 <FormField name="channelName" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Channel Name</FormLabel>
+                    <FormControl><Input placeholder="e.g., Jane's World" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField name="platform" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Platform</FormLabel>
@@ -170,8 +179,6 @@ export default function AddInfluencerDialog({
                       <SelectContent>
                         <SelectItem value="YouTube">YouTube</SelectItem>
                         <SelectItem value="Instagram">Instagram</SelectItem>
-                        <SelectItem value="Twitter">Twitter</SelectItem>
-                        <SelectItem value="TikTok">TikTok</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
