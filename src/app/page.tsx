@@ -18,6 +18,7 @@ import {
   Youtube,
   CheckCircle,
   Home,
+  UserRound,
 } from "lucide-react";
 import { Influencer, Campaign, UserRole, Platform } from "@/lib/types";
 import { influencers as initialInfluencers, campaigns as initialCampaigns } from "@/lib/data";
@@ -158,13 +159,19 @@ function Influencers() {
           </div>
         </SidebarHeader>
         <SidebarContent>
-           <div className="p-4 flex flex-col items-center text-center gap-2">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src="https://picsum.photos/seed/user/100/100" alt="User" data-ai-hint="person face" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-              <div className="font-semibold text-lg">Jane Doe</div>
-              <Badge variant="outline">{userRole}</Badge>
+           <div className="p-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-12 w-12 border-2 border-primary">
+                  <AvatarImage src="https://picsum.photos/seed/user/100/100" alt="User" data-ai-hint="person face" />
+                  <AvatarFallback>
+                    <UserRound />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-lg">Jane Doe</p>
+                  <p className="text-sm text-muted-foreground">{userRole}</p>
+                </div>
+              </div>
             </div>
             <SidebarSeparator />
           <SidebarMenu>
