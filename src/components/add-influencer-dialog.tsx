@@ -41,7 +41,7 @@ const platformSchema = z.object({
   platform: z.enum(["YouTube", "Instagram"]),
   channelName: z.string().min(1, "Channel name is required."),
   channelLink: z.string().url("Please enter a valid URL."),
-  handle: z.string().min(1, "Handle is required."),
+  handle: z.string().min(1, "Username is required."),
   averageViews: z.coerce.number().positive("Views must be a positive number."),
 });
 
@@ -270,7 +270,7 @@ export default function AddInfluencerDialog({
                         name="platform1.handle"
                         render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                            <FormLabel>Handle</FormLabel>
+                            <FormLabel>Username</FormLabel>
                             <FormControl><Input placeholder="@janedoe" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -340,7 +340,7 @@ export default function AddInfluencerDialog({
                         name="platform2.handle"
                         render={({ field }) => (
                         <FormItem className="md:col-span-2">
-                            <FormLabel>Handle</FormLabel>
+                            <FormLabel>Username</FormLabel>
                             <FormControl><Input placeholder="@janedoe" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -444,3 +444,5 @@ export default function AddInfluencerDialog({
     </Dialog>
   );
 }
+
+    
