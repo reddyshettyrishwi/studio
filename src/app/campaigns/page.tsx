@@ -10,6 +10,7 @@ import {
   Plus,
   Search,
   Users,
+  Home,
 } from "lucide-react";
 import { Campaign, Influencer, ApprovalStatus, UserRole } from "@/lib/types";
 import { campaigns as initialCampaigns, influencers as initialInfluencers } from "@/lib/data";
@@ -122,6 +123,14 @@ function Campaigns() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href={`/dashboard?role=${userRole}`} className="w-full">
+                <SidebarMenuButton>
+                  <Home />
+                  Dashboard
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href={`/?role=${userRole}`} className="w-full">
                 <SidebarMenuButton>

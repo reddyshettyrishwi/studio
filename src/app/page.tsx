@@ -17,6 +17,7 @@ import {
   Users,
   Youtube,
   CheckCircle,
+  Home,
 } from "lucide-react";
 import { Influencer, Campaign, UserRole, Platform } from "@/lib/types";
 import { influencers as initialInfluencers, campaigns as initialCampaigns } from "@/lib/data";
@@ -53,9 +54,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import AddInfluencerDialog from "@/components/add-influencer-dialog";
-import LogCampaignDialog from "@/components/log-campaign-dialog";
 import { format, isPast } from "date-fns";
 import {
   Dialog,
@@ -77,12 +76,11 @@ const maskSensitiveData = (data: string, role: UserRole) => {
   return data;
 };
 
-function Dashboard() {
+function Influencers() {
   const searchParams = useSearchParams()
   const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
 
   const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
-  const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "table">("grid");
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
@@ -98,16 +96,10 @@ function Dashboard() {
   });
   
   const [isAddInfluencerOpen, setAddInfluencerOpen] = React.useState(false);
-  const [isLogCampaignOpen, setLogCampaignOpen] = React.useState(false);
 
   const categories = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.category))], []);
   const regions = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.region))], []);
   const languages = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.language))], []);
-  
-  // Analytics data
-  const totalInfluencers = influencers.length;
-  const totalCampaigns = campaigns.length;
-  const approvedCampaigns = campaigns.filter(c => c.approvalStatus === 'Approved').length;
 
   const handleFilterChange = (type: keyof typeof filters, value: string) => {
     setFilters(prev => {
@@ -144,14 +136,6 @@ function Dashboard() {
     };
     setInfluencers(prev => [influencerToAdd, ...prev]);
   };
-
-  const logCampaign = (newCampaign: Omit<Campaign, 'id'>) => {
-    const campaignToAdd: Campaign = {
-      ...newCampaign,
-      id: `camp-${Date.now()}`
-    };
-    setCampaigns(prev => [campaignToAdd, ...prev]);
-  };
   
   const isDataOutdated = (dateString: string) => {
     const date = new Date(dateString);
@@ -174,6 +158,14 @@ function Dashboard() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <Link href={`/dashboard?role=${userRole}`} className="w-full">
+                <SidebarMenuButton>
+                  <Home />
+                  Dashboard
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href={`/?role=${userRole}`} className="w-full">
                 <SidebarMenuButton isActive>
@@ -210,49 +202,8 @@ function Dashboard() {
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
                 <div className="flex items-center gap-4">
                     <SidebarTrigger className="md:hidden" />
-                    <h2 className="text-3xl font-headline font-bold tracking-tight">Dashboard</h2>
+                    <h2 className="text-3xl font-headline font-bold tracking-tight">Influencers</h2>
                 </div>
-                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Viewing as:</span>
-                    <Badge variant="outline">{userRole}</Badge>
-                </div>
-            </div>
-
-            {/* Analytics Section */}
-            <div className="grid gap-4 md:grid-cols-3 mb-6">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Influencers</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{totalInfluencers}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
-                        <Megaphone className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{totalCampaigns}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Approved Campaigns</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{approvedCampaigns}</div>
-                    </CardContent>
-                </Card>
-            </div>
-            
-            <Separator className="my-6" />
-
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
-                <h3 className="text-2xl font-headline font-bold tracking-tight">Influencers</h3>
                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     <div className="relative w-full md:w-auto grow">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -300,7 +251,6 @@ function Dashboard() {
                     </div>
 
                     <div className="hidden md:flex items-center gap-2">
-                        <Button onClick={() => setLogCampaignOpen(true)} variant="outline"><Megaphone className="mr-2"/>Log Campaign</Button>
                         <Button onClick={() => setAddInfluencerOpen(true)}><Plus className="mr-2"/>Add Influencer</Button>
                     </div>
                 </div>
@@ -357,7 +307,6 @@ function Dashboard() {
                                 <Badge variant="outline">{influencer.region}</Badge>
                                 <Badge variant="outline">{influencer.language}</Badge>
                             </div>
-                            <Separator />
                             <div className="space-y-2 text-sm">
                               {influencer.platforms.map(p => (
                                 <div key={p.platform}>
@@ -367,7 +316,6 @@ function Dashboard() {
                                 </div>
                               ))}
                             </div>
-                            <Separator />
                             <div className="space-y-2 text-sm">
                               <p><strong className="font-bold">Last Price Paid:</strong> ${influencer.lastPricePaid.toLocaleString()}</p>
                               <div className="flex items-center">
@@ -437,7 +385,6 @@ function Dashboard() {
             )}
 
             <div className="fixed bottom-4 right-4 flex md:hidden flex-col gap-2">
-                <Button onClick={() => setLogCampaignOpen(true)} size="icon" className="h-14 w-14 rounded-full shadow-lg"><Megaphone className="h-6 w-6"/></Button>
                 <Button onClick={() => setAddInfluencerOpen(true)} size="icon" className="h-14 w-14 rounded-full shadow-lg"><Plus className="h-6 w-6"/></Button>
             </div>
             
@@ -445,14 +392,6 @@ function Dashboard() {
               isOpen={isAddInfluencerOpen}
               onClose={() => setAddInfluencerOpen(false)}
               onAddInfluencer={addInfluencer}
-            />
-            
-            <LogCampaignDialog
-              isOpen={isLogCampaignOpen}
-              onClose={() => setLogCampaignOpen(false)}
-      
-              onLogCampaign={logCampaign}
-              influencers={influencers}
             />
 
         </main>
@@ -462,10 +401,10 @@ function Dashboard() {
 }
 
 // Wrap the main component in a Suspense boundary
-export default function DashboardPage() {
+export default function InfluencersPage() {
   return (
     <React.Suspense fallback={<div>Loading...</div>}>
-      <Dashboard />
+      <Influencers />
     </React.Suspense>
   );
 }

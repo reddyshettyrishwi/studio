@@ -45,7 +45,7 @@ export default function LoginPage() {
     } else {
       // Handle Sign In
       if (password === "123456") {
-        router.push(`/?role=${selectedRole}`);
+        router.push(`/dashboard?role=${selectedRole}`);
       } else {
         toast({
           variant: "destructive",
