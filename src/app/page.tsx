@@ -32,6 +32,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -149,14 +150,24 @@ function Influencers() {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-            <div className="flex items-center gap-2">
-                <div className="bg-primary/20 text-primary p-2 rounded-lg">
-                    <Megaphone className="h-6 w-6" />
-                </div>
-                <h1 className="text-xl font-headline font-semibold text-sidebar-foreground">InfluenceWise</h1>
+            <div className="flex flex-col items-start gap-2">
+                <h1 className="text-2xl font-headline font-bold text-sidebar-foreground">Influencer Hub</h1>
+                <p className="text-sm text-sidebar-foreground/80">Campaign Management</p>
             </div>
         </SidebarHeader>
         <SidebarContent>
+            <div className="flex flex-col gap-4 p-2">
+                 <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground text-lg">J</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="font-semibold text-sidebar-foreground">John Executive</p>
+                        <p className="text-xs text-sidebar-foreground/80">Executive</p>
+                    </div>
+                </div>
+            </div>
+            <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href={`/dashboard?role=${userRole}`} className="w-full">
