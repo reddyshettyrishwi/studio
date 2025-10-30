@@ -25,6 +25,7 @@ declare module 'lucide-react' {
     export const ChevronRight: FC<SVGProps<SVGSVGElement>>;
     export const Circle: FC<SVGProps<SVGSVGElement>>;
     export const UserRound: FC<SVGProps<SVGSVGElement>>;
+    export const MessageSquare: FC<SVGProps<SVGSVGElement>>;
     // Add other icons that you use here...
   }
   

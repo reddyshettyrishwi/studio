@@ -12,6 +12,7 @@ import {
   List,
   LogOut,
   Megaphone,
+  MessageSquare,
   Plus,
   Search,
   Users,
@@ -199,6 +200,14 @@ function Influencers() {
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
+                <SidebarMenuButton size="lg">
+                  <MessageSquare />
+                  Messaging
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>

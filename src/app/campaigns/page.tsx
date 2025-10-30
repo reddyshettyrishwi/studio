@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import {
   LogOut,
   Megaphone,
+  MessageSquare,
   Plus,
   Search,
   Users,
@@ -165,6 +166,14 @@ function Campaigns() {
                 <SidebarMenuButton isActive size="lg">
                   <Megaphone />
                   Campaigns
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
+                <SidebarMenuButton size="lg">
+                  <MessageSquare />
+                  Messaging
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
