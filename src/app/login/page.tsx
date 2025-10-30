@@ -24,19 +24,35 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isSigningUp, setIsSigningUp] = React.useState(false);
+  const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Level 2");
 
-  const handleSignIn = () => {
-    if (password === "123456") {
-      router.push(`/?role=${selectedRole}`);
-    } else {
+  const handleAuthAction = () => {
+    if (isSigningUp) {
+      // Handle Sign Up
       toast({
-        variant: "destructive",
-        title: "Sign In Failed",
-        description: "The password you entered is incorrect. Please try again.",
+        title: "Registration Successful!",
+        description: `Welcome, ${name}! You can now sign in.`,
       });
+      setIsSigningUp(false); // Switch back to sign-in form
+      // Clear fields
+      setName("");
+      setEmail("");
+      setPassword("");
+    } else {
+      // Handle Sign In
+      if (password === "123456") {
+        router.push(`/?role=${selectedRole}`);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Sign In Failed",
+          description: "The password you entered is incorrect. Please try again.",
+        });
+      }
     }
   };
 
@@ -52,12 +68,22 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline">Sign In</CardTitle>
+          <CardTitle className="text-2xl font-headline">
+            {isSigningUp ? "Create Account" : "Sign In"}
+          </CardTitle>
           <CardDescription>
-            Enter your credentials to access the dashboard.
+            {isSigningUp
+              ? "Enter your details to create a new account."
+              : "Enter your credentials to access the dashboard."}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
+          {isSigningUp && (
+            <div className="grid gap-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -102,11 +128,21 @@ export default function LoginPage() {
               </div>
             </RadioGroup>
           </div>
-          <Button onClick={handleSignIn} className="w-full">
-            Sign In
+          <Button onClick={handleAuthAction} className="w-full">
+            {isSigningUp ? "Sign Up" : "Sign In"}
           </Button>
         </CardContent>
         <CardFooter className="flex-col gap-4">
+           <div className="text-sm">
+            <button
+              onClick={() => setIsSigningUp(!isSigningUp)}
+              className="font-medium text-primary hover:underline"
+            >
+              {isSigningUp
+                ? "Already have an account? Sign In"
+                : "Don't have an account? Sign Up"}
+            </button>
+          </div>
           <div className="relative w-full">
             <Separator />
             <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
