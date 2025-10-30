@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -92,10 +93,12 @@ export default function LogCampaignDialog({
         setIsCheckingPrice(true);
         setPriceAnomaly(null);
         try {
+          // Since an influencer can have multiple platforms, we'll use the highest average views for the check.
+          const highestAverageViews = Math.max(...selectedInfluencer.platforms.map(p => p.averageViews));
           const result = await alertOnPriceAnomalies({
             influencerName: selectedInfluencer.name,
             proposedPrice: pricePaid,
-            averageViews: selectedInfluencer.averageViews,
+            averageViews: highestAverageViews,
             previousPriceBenchmarks: [selectedInfluencer.lastPricePaid],
           });
           if (result.isPriceTooHigh) {
@@ -113,8 +116,9 @@ export default function LogCampaignDialog({
   function onSubmit(data: LogCampaignFormValues) {
     const selectedInfluencer = influencers.find(i => i.id === data.influencerId);
     if (!selectedInfluencer) return;
+    const highestAverageViews = Math.max(...selectedInfluencer.platforms.map(p => p.averageViews));
 
-    onLogCampaign({ ...data, averageViews: selectedInfluencer.averageViews });
+    onLogCampaign({ ...data, averageViews: highestAverageViews });
     toast({
       title: "Campaign Logged!",
       description: `${data.name} has been added to the campaign records.`,

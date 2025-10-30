@@ -5,16 +5,21 @@ export type Platform = 'YouTube' | 'Instagram';
 
 export type ApprovalStatus = 'Approved' | 'Pending' | 'Rejected';
 
+export type PlatformDetails = {
+  platform: Platform;
+  channelName: string;
+  channelLink: string;
+  handle: string;
+  averageViews: number;
+};
+
 export type Influencer = {
   id: string;
   name: string;
-  platform: Platform;
-  channelName: string;
+  platforms: PlatformDetails[];
   category: string;
   language: string;
   region: string;
-  channelLink: string;
-  handle: string;
   email: string;
   mobile: string;
   pan: string; // Faking PAN as a string
@@ -25,7 +30,6 @@ export type Influencer = {
   lastPromotionBy: string;
   lastPromotionDate: string;
   lastPricePaid: number;
-  averageViews: number;
   avatar: string; // URL to image
 };
 

@@ -126,7 +126,7 @@ function Dashboard() {
       const searchMatch =
         searchQuery === "" ||
         influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        influencer.handle.toLowerCase().includes(searchQuery.toLowerCase());
+        influencer.platforms.some(p => p.handle.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const categoryMatch = filters.category.size === 0 || filters.category.has(influencer.category);
       const regionMatch = filters.region.size === 0 || filters.region.has(influencer.region);
@@ -325,7 +325,7 @@ function Dashboard() {
                             </Avatar>
                             <div>
                               <CardTitle className="font-headline text-lg">{influencer.name}</CardTitle>
-                              <p className="text-sm text-muted-foreground">@{influencer.handle}</p>
+                              <p className="text-sm text-muted-foreground">{influencer.platforms.map(p => `@${p.handle}`).join(', ')}</p>
                             </div>
                           </div>
                         </CardHeader>
@@ -340,22 +340,36 @@ function Dashboard() {
                             </Avatar>
                             <div>
                                 <DialogTitle className="font-headline text-2xl">{influencer.name}</DialogTitle>
-                                <p className="text-sm text-muted-foreground">@{influencer.handle}</p>
-                                <p className="text-base text-muted-foreground">{influencer.channelName}</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {influencer.platforms.map(p => (
+                                    <div key={p.platform} className="flex items-center gap-1 text-sm text-muted-foreground">
+                                       {platformIcons[p.platform]}
+                                       <span>@{p.handle}</span>
+                                    </div>
+                                  ))}
+                                </div>
                             </div>
                         </div>
                       </DialogHeader>
                         <div className="pt-4 space-y-4">
-                            <div className="flex items-center gap-2 text-sm">
-                                {platformIcons[influencer.platform]}
+                            <div className="flex items-center gap-2 text-sm flex-wrap">
                                 <Badge variant="secondary">{influencer.category}</Badge>
                                 <Badge variant="outline">{influencer.region}</Badge>
+                                <Badge variant="outline">{influencer.language}</Badge>
                             </div>
                             <Separator />
                             <div className="space-y-2 text-sm">
-                              <p><strong className="font-bold">Channel Link:</strong> <a href={influencer.channelLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{influencer.channelLink}</a></p>
+                              {influencer.platforms.map(p => (
+                                <div key={p.platform}>
+                                  <p className="font-bold flex items-center gap-2">{platformIcons[p.platform]} {p.channelName}</p>
+                                  <p><strong className="font-semibold">Link:</strong> <a href={p.channelLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{p.channelLink}</a></p>
+                                  <p><strong className="font-semibold">Avg. Views:</strong> {p.averageViews.toLocaleString()}</p>
+                                </div>
+                              ))}
+                            </div>
+                            <Separator />
+                            <div className="space-y-2 text-sm">
                               <p><strong className="font-bold">Last Price Paid:</strong> ${influencer.lastPricePaid.toLocaleString()}</p>
-                              <p><strong className="font-bold">Avg. Views:</strong> {influencer.averageViews.toLocaleString()}</p>
                               <div className="flex items-center">
                                 <strong className="font-bold mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
                                 {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
@@ -374,11 +388,9 @@ function Dashboard() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
-                                <TableHead>Channel</TableHead>
-                                <TableHead>Platform</TableHead>
+                                <TableHead>Channels</TableHead>
                                 <TableHead>Category</TableHead>
                                 <TableHead>Last Price Paid</TableHead>
-                                <TableHead>Avg. Views</TableHead>
                                 <TableHead>Contact</TableHead>
                                 <TableHead>Last Promo</TableHead>
                             </TableRow>
@@ -396,13 +408,20 @@ function Dashboard() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                      <div className="font-medium">{influencer.channelName}</div>
-                                      <a href={influencer.channelLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">@{influencer.handle}</a>
+                                        <div className="flex flex-col gap-2">
+                                            {influencer.platforms.map(p => (
+                                                <div key={p.platform} className="flex items-center gap-2">
+                                                    {platformIcons[p.platform]}
+                                                    <div>
+                                                        <div className="font-medium">{p.channelName}</div>
+                                                        <a href={p.channelLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">@{p.handle} ({p.averageViews.toLocaleString()} avg views)</a>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </TableCell>
-                                    <TableCell>{platformIcons[influencer.platform]} {influencer.platform}</TableCell>
                                     <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>
                                     <TableCell>${influencer.lastPricePaid.toLocaleString()}</TableCell>
-                                    <TableCell>{influencer.averageViews.toLocaleString()}</TableCell>
                                     <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>
                                     <TableCell>
                                       <div className="flex items-center">
