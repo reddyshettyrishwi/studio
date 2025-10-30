@@ -32,10 +32,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, CalendarIcon } from "lucide-react";
 import type { Influencer, PlatformDetails } from "@/lib/types";
 import { detectDuplicateInfluencers, DetectDuplicateInfluencersOutput } from "@/ai/flows/detect-duplicate-influencers";
 import { Separator } from "./ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar } from "./ui/calendar";
 
 const platformSchema = z.object({
   platform: z.enum(["YouTube", "Instagram"]),
@@ -65,7 +69,9 @@ const influencerSchema = z.object({
   mobile: z.string().min(10, "Please enter a valid mobile number."),
   pan: z.string().min(1, "PAN/Legal ID is required."),
   lastPromotionBy: z.string().min(1, "Required field."),
-  lastPromotionDate: z.string().min(1, "Required field."),
+  lastPromotionDate: z.date({
+    required_error: "A date of promotion is required.",
+  }),
   lastPricePaid: z.coerce.number().positive("Price must be a positive number."),
 });
 
@@ -96,7 +102,6 @@ export default function AddInfluencerDialog({
       category: "",
       language: "",
       lastPromotionBy: "",
-      lastPromotionDate: "",
       lastPricePaid: 0,
       platform1: {
         platform: "Instagram",
@@ -162,6 +167,7 @@ export default function AddInfluencerDialog({
     const influencerData = {
         ...data,
         platforms,
+        lastPromotionDate: format(data.lastPromotionDate, 'yyyy-MM-dd'),
     };
 
     // Remove platform1 and platform2 from the final object
@@ -169,7 +175,7 @@ export default function AddInfluencerDialog({
     delete (influencerData as any).platform2;
 
 
-    onAddInfluencer(influencerData);
+    onAddInfluencer(influencerData as Omit<Influencer, "id" | "avatar">);
     toast({
       title: "Success!",
       description: `${data.name} has been added to the repository.`,
@@ -400,10 +406,43 @@ export default function AddInfluencerDialog({
                   </FormItem>
                 )}
               />
-              <FormField name="lastPromotionDate" control={control} render={({ field }) => (
-                  <FormItem>
+              <FormField
+                control={form.control}
+                name="lastPromotionDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col pt-2">
                     <FormLabel>Last Promotion Date</FormLabel>
-                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -444,5 +483,3 @@ export default function AddInfluencerDialog({
     </Dialog>
   );
 }
-
-    
