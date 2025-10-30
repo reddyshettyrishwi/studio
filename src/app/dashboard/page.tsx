@@ -13,7 +13,7 @@ import {
   Users,
   UserRound,
 } from "lucide-react";
-import { Influencer, Campaign, UserRole } from "@/lib/types";
+import { Influencer, Campaign, UserRole, ApprovalStatus } from "@/lib/types";
 import { influencers as initialInfluencers, campaigns as initialCampaigns } from "@/lib/data";
 import {
   SidebarProvider,
@@ -41,12 +41,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
-const StatusBadge = ({ status }: { status: 'Approved' | 'Pending' | 'Rejected' }) => {
+const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   const variant = {
     Approved: "success",
     Pending: "warning",
     Rejected: "destructive",
-  }[status] as "success" | "warning" | "destructive" | "default" | "secondary" | "outline" | null | undefined;
+    Completed: "completed",
+  }[status] as "success" | "warning" | "destructive" | "completed" | "default" | "secondary" | "outline" | null | undefined;
 
   return (
     <Badge variant={variant} className="flex items-center gap-2">

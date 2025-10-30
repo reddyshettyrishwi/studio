@@ -266,7 +266,7 @@ export const campaigns: Campaign[] = [
     pricePaid: 166000,
     averageViews: 500000,
     influencerId: 'inf-3',
-    approvalStatus: 'Approved',
+    approvalStatus: 'Completed',
   },
   {
     id: 'camp-4',

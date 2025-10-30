@@ -57,7 +57,8 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
     Approved: "success",
     Pending: "warning",
     Rejected: "destructive",
-  }[status] as "success" | "warning" | "destructive" | "default" | "secondary" | "outline" | null | undefined;
+    Completed: "completed",
+  }[status] as "success" | "warning" | "destructive" | "completed" | "default" | "secondary" | "outline" | null | undefined;
 
   return (
     <Badge variant={variant} className="flex items-center gap-2">
@@ -71,6 +72,7 @@ const StatusCircle = ({ status }: { status: ApprovalStatus }) => {
     Approved: "bg-green-500/70",
     Pending: "bg-yellow-500/70",
     Rejected: "bg-red-500/70",
+    Completed: "bg-blue-500/70",
   }[status];
   return <div className={`h-2.5 w-2.5 rounded-full ${color}`} />;
 };
@@ -275,6 +277,11 @@ function Campaigns() {
                                 <SelectItem value="Rejected">
                                    <div className="flex items-center gap-2">
                                     Rejected <StatusCircle status="Rejected" />
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="Completed">
+                                   <div className="flex items-center gap-2">
+                                    Completed <StatusCircle status="Completed" />
                                   </div>
                                 </SelectItem>
                               </SelectContent>

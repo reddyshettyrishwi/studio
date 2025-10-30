@@ -3,7 +3,7 @@ export type UserRole = 'Level 1' | 'Level 2' | 'Level 3';
 
 export type Platform = 'YouTube' | 'Instagram';
 
-export type ApprovalStatus = 'Approved' | 'Pending' | 'Rejected';
+export type ApprovalStatus = 'Approved' | 'Pending' | 'Rejected' | 'Completed';
 
 export type PlatformDetails = {
   platform: Platform;
