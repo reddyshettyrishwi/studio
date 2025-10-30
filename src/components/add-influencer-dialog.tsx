@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -78,6 +78,16 @@ export default function AddInfluencerDialog({
   const form = useForm<AddInfluencerFormValues>({
     resolver: zodResolver(influencerSchema),
     defaultValues: {
+      name: "",
+      email: "",
+      mobile: "",
+      pan: "",
+      category: "",
+      language: "",
+      region: "",
+      lastPromotionBy: "",
+      lastPromotionDate: "",
+      lastPricePaid: 0,
       platforms: [
         { platform: "Instagram", channelName: "", channelLink: "", handle: "", averageViews: 0 }
       ],
@@ -85,7 +95,10 @@ export default function AddInfluencerDialog({
   });
   
   const { control, watch, setValue } = form;
-  const { fields, append, remove } = (form.control as any)._fields.platforms;
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "platforms",
+  });
 
 
   const watchedFields = watch(['mobile', 'pan', 'platforms']);
@@ -191,7 +204,7 @@ export default function AddInfluencerDialog({
             
             <div className="space-y-4">
                 <FormLabel>Platforms</FormLabel>
-                {fields.map((field: any, index: number) => (
+                {fields.map((field, index) => (
                     <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-2 border p-4 rounded-md relative">
                        <FormField
                             control={control}
