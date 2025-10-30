@@ -24,6 +24,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Table,
@@ -88,6 +89,15 @@ function Dashboard() {
         </SidebarHeader>
 
         <SidebarContent>
+           <div className="p-4 flex flex-col items-center text-center gap-2">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src="https://picsum.photos/seed/user/100/100" alt="User" data-ai-hint="person face" />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+              <div className="font-semibold text-lg">Jane Doe</div>
+              <Badge variant="outline">{userRole}</Badge>
+            </div>
+            <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
               <Link href={`/dashboard?role=${userRole}`} className="w-full">
@@ -229,6 +239,3 @@ export default function DashboardPage() {
     </React.Suspense>
   );
 }
-
-
-    
