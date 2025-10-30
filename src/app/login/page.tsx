@@ -21,6 +21,27 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+// Function to extract a display name from an email address
+const extractNameFromEmail = (email: string): string => {
+    if (!email || !email.includes('@')) {
+        return "User";
+    }
+    const namePart = email.split('@')[0];
+    // Remove numbers, dots, underscores, or hyphens and capitalize parts
+    const cleanedName = namePart
+        .replace(/[0-9._-]/g, ' ')
+        .replace(/\s+/g, ' ') // Replace multiple spaces with a single one
+        .trim();
+    
+    if (!cleanedName) return "User";
+
+    return cleanedName
+        .split(' ')
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+};
+
+
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -45,7 +66,8 @@ export default function LoginPage() {
     } else {
       // Handle Sign In
       if (password === "123456") {
-        router.push(`/dashboard?role=${selectedRole}`);
+        const displayName = extractNameFromEmail(email);
+        router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
       } else {
         toast({
           variant: "destructive",

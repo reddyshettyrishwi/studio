@@ -57,10 +57,13 @@ const StatusBadge = ({ status }: { status: 'Approved' | 'Pending' | 'Rejected' }
 function Dashboard() {
   const searchParams = useSearchParams()
   const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
+  const initialName = searchParams.get('name') || "Jane Doe";
+
 
   const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
+  const [userName, setUserName] = React.useState<string>(initialName);
   
   // Analytics data
   const totalInfluencers = influencers.length;
@@ -98,7 +101,7 @@ function Dashboard() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-semibold text-lg">Jane Doe</p>
+                  <p className="font-semibold text-lg">{userName}</p>
                   <p className="text-sm text-muted-foreground">{userRole}</p>
                 </div>
               </div>
@@ -106,7 +109,7 @@ function Dashboard() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?role=${userRole}`} className="w-full">
+              <Link href={`/dashboard?role=${userRole}&name=${userName}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Home />
                   Dashboard
@@ -114,7 +117,7 @@ function Dashboard() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/?role=${userRole}`} className="w-full">
+              <Link href={`/?role=${userRole}&name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -122,7 +125,7 @@ function Dashboard() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?role=${userRole}`} className="w-full">
+              <Link href={`/campaigns?role=${userRole}&name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
