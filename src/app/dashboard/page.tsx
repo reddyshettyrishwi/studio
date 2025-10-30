@@ -211,6 +211,7 @@ function Dashboard() {
                     <TableRow>
                       <TableHead>Campaign</TableHead>
                       <TableHead>Influencer</TableHead>
+                      <TableHead>Department</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -232,6 +233,7 @@ function Dashboard() {
                               </div>
                             ) : 'N/A'}
                           </TableCell>
+                          <TableCell><Badge variant="outline">{campaign.department}</Badge></TableCell>
                           <TableCell>{format(new Date(campaign.date), 'dd MMM yyyy')}</TableCell>
                           <TableCell>
                             <StatusBadge status={campaign.approvalStatus} />
