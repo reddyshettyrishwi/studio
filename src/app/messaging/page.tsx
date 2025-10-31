@@ -29,7 +29,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function Messaging() {
+function MessagingContent() {
   const searchParams = useSearchParams()
   const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
   const initialName = searchParams.get('name') || "Jane Doe";
@@ -136,11 +136,10 @@ function Messaging() {
   );
 }
 
-// Wrap the main component in a Suspense boundary
 export default function MessagingPage() {
   return (
     <React.Suspense fallback={<div>Loading...</div>}>
-      <Messaging />
+      <MessagingContent />
     </React.Suspense>
   );
 }

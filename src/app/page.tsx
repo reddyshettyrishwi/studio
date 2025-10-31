@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useSearchParams } from 'next/navigation'
 import {
   Filter,
-  Globe,
   Instagram,
   LayoutGrid,
   List,
@@ -17,12 +16,11 @@ import {
   Search,
   Users,
   Youtube,
-  CheckCircle,
   Home,
   UserRound,
 } from "lucide-react";
-import { Influencer, Campaign, UserRole, Platform } from "@/lib/types";
-import { influencers as initialInfluencers, campaigns as initialCampaigns } from "@/lib/data";
+import { Influencer, UserRole, Platform } from "@/lib/types";
+import { influencers as initialInfluencers } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -79,7 +77,7 @@ const maskSensitiveData = (data: string, role: UserRole) => {
   return data;
 };
 
-function Influencers() {
+function InfluencersContent() {
   const searchParams = useSearchParams()
   const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
   const initialName = searchParams.get('name') || "Jane Doe";
@@ -419,11 +417,10 @@ function Influencers() {
   );
 }
 
-// Wrap the main component in a Suspense boundary
 export default function InfluencersPage() {
   return (
     <React.Suspense fallback={<div>Loading...</div>}>
-      <Influencers />
+      <InfluencersContent />
     </React.Suspense>
   );
 }

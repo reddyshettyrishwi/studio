@@ -56,7 +56,7 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   );
 };
 
-function Dashboard() {
+function DashboardContent() {
   const searchParams = useSearchParams()
   const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
   const initialName = searchParams.get('name') || "Jane Doe";
@@ -252,11 +252,10 @@ function Dashboard() {
   );
 }
 
-// Wrap the main component in a Suspense boundary
 export default function DashboardPage() {
   return (
     <React.Suspense fallback={<div>Loading...</div>}>
-      <Dashboard />
+      <DashboardContent />
     </React.Suspense>
   );
 }

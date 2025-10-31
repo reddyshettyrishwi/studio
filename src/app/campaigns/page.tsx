@@ -77,8 +77,7 @@ const StatusCircle = ({ status }: { status: ApprovalStatus }) => {
   return <div className={`h-2.5 w-2.5 rounded-full ${color}`} />;
 };
 
-
-function Campaigns() {
+function CampaignsContent() {
   const searchParams = useSearchParams();
   const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
   const initialName = searchParams.get('name') || "Jane Doe";
@@ -308,11 +307,10 @@ function Campaigns() {
   );
 }
 
-// Wrap the main component in a Suspense boundary
 export default function CampaignsPage() {
   return (
     <React.Suspense fallback={<div>Loading...</div>}>
-      <Campaigns />
+      <CampaignsContent />
     </React.Suspense>
   );
 }
