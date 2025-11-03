@@ -40,7 +40,7 @@ service cloud.firestore {
       // Allow a user to read their own profile.
       allow get: if isOwner(userId);
 
-      // Do not allow anyone to list all users.
+      // Admins can list users with a "Pending" status.
       allow list: if isSignedIn() && query.get("status") == "Pending" && isAdmin();
 
 
