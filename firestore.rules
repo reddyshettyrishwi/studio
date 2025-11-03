@@ -1,72 +1,58 @@
-/**
- * @fileoverview Firestore Security Rules for InfluenceWise.
- *
- * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles and allows controlled
- * access to agencies, influencers, and campaigns based on association and denormalized data.
- * Access control is managed through path-based ownership for users and association with agencies and influencers for other entities.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles, accessible only by the authenticated user.
- * - /agencies/{agencyId}: Stores agency profiles, access managed through role-based permissions.
- * - /influencers/{influencerId}: Stores influencer profiles, access controlled by association with an agency (agencyId).
- * - /campaigns/{campaignId}: Stores campaign data, access based on association with influencers (influencerIds).
- *
- * Key Security Decisions:
- * - User profiles are strictly private to the owning user.
- * - Listing of user profiles is disallowed.
- * - Access to influencers and campaigns is based on association with agencies and influencers, respectively.
- * - Data denormalization (agencyId in influencers, influencerIds in campaigns) is used to simplify security rules and avoid costly `get()` calls.
- *
- * Denormalization for Authorization:
- * - The `influencers` documents have a denormalized `agencyId` field. This allows rules to check if the logged-in user has access to a specific agency.
- * - The `campaigns` documents have a denormalized `influencerIds` array. This allows rules to check if the logged-in user has access to the relevant influencers without retrieving related campaign details.
- *
- * Structural Segregation:
- * - This ruleset currently does not need data to be both private and public.
- */
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Allows only the authenticated user to read and write their own profile.
-     * @path /users/{userId}
-     * @principle Enforces document ownership for all operations and validates data on write.
-     */
-    match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-      
-      function isNewUserValid(data) {
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      // In a real app, this would check for a custom claim or a specific role in the database.
+      // For this demo, we'll assume any signed-in user can be an admin for approval purposes.
+      // This is NOT secure for production.
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    match /users/{userId} {
+      // VALIDATION: Ensure incoming user data has the correct fields and types.
+      function isNewUserDataValid() {
+        let data = request.resource.data;
         return data.name is string &&
                data.email is string &&
                data.role is string && (data.role == 'Manager' || data.role == 'Executive' || data.role == 'Admin') &&
-               data.status is string && (data.status == 'Pending' || data.status == 'Approved');
+               data.status is string && (data.status == 'Pending' || data.status == 'Approved') &&
+               data.keys().hasAll(['name', 'email', 'role', 'status']);
       }
       
-      function isUpdateValid(data) {
-          // Only status can be updated by an admin (or by the user themselves in some cases)
-          // This is a simplified rule. A real app might have more complex logic.
-          return data.keys().hasOnly(['status']) && data.status is string;
+      function isStatusUpdateValid() {
+        let data = request.resource.data;
+        // Check that only 'status' is being updated.
+        return data.keys().hasOnly(['status']) && 
+               data.status is string && 
+               (data.status == 'Approved' || data.status == 'Rejected'); // Or other valid statuses
       }
 
+      // SECURITY:
+      // Allow a user to read their own profile.
       allow get: if isOwner(userId);
+
+      // Do not allow anyone to list all users.
       allow list: if false;
 
-      // Allow create if the user is creating their own document and the data is valid.
-      allow create: if isOwner(userId) && isNewUserValid(request.resource.data);
+      // Allow a user to create their own user document if the data is valid.
+      // This is crucial for social sign-ins where the user record is created after authentication.
+      allow create: if isOwner(userId) && isNewUserDataValid();
 
-      // Allow admins to approve users (update status)
-      // and users to update their own (limited) data
-      allow update: if (isOwner(userId) && isUpdateValid(request.resource.data)) ||
-                       (isSignedIn() && resource.data.role == 'Admin'); // Simplified admin check
+      // Allow an admin to update a user's status (e.g., for approvals).
+      // Allow a user to update limited fields on their own profile (not implemented here, but possible).
+      allow update: if isAdmin() && isStatusUpdateValid();
                        
+      // Allow a user to delete their own account.
       allow delete: if isOwner(userId);
     }
 
@@ -79,19 +65,8 @@ service cloud.firestore {
      * @principle Restricts agency management to authorized users.
      */
     match /agencies/{agencyId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // TODO: Replace with a proper role-based check once roles are defined.
-      function isAdmin() {
-        return isSignedIn(); // Placeholder:  Replace with your actual admin check.
-      }
-
       allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow create, update, delete: if isAdmin();
     }
 
     /**
@@ -103,14 +78,11 @@ service cloud.firestore {
      * @principle Manages access based on agency association.
      */
     match /influencers/{influencerId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       allow get, list: if true; // Allow public read access.
 
-      // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      // Allow any signed-in user to create, update, or delete influencers for now.
+      // In a real app, this would be restricted to 'Managers' or 'Admins'.
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
@@ -121,12 +93,11 @@ service cloud.firestore {
      * @principle Controls access to campaigns.
      */
     match /campaigns/{campaignId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
       allow get, list: if true;
 
-      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      // Allow any signed-in user to create, update, or delete campaigns for now.
+      // In a real app, this would be restricted to 'Managers'.
+      allow create, update, delete: if isSignedIn();
     }
   }
 }

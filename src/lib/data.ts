@@ -42,28 +42,24 @@ export const getCampaigns = async (db: Firestore): Promise<Campaign[]> => {
 // User Management Functions
 // =================================================================
 
-export const addUser = async (db: Firestore, user: User) => {
-  const userRef = doc(db, 'users', user.id);
-  
-  // Check if user already exists
-  const docSnap = await getDoc(userRef);
-  if (docSnap.exists()) {
-    // In a real app, you might merge data, but here we just prevent overwriting to be safe.
-    // Or, if sign-up is the only entry point for new users, this might indicate an error.
-    console.warn("User document already exists, not overwriting.");
-    return;
-  }
+export const addUser = async (db: Firestore, user: Omit<User, 'password'>) => {
+    const userRef = doc(db, 'users', user.id);
+    
+    const docSnap = await getDoc(userRef);
+    if (docSnap.exists()) {
+        console.warn("User document already exists, not overwriting.");
+        return;
+    }
 
-  const newUser: Omit<User, 'id'> = {
-    name: user.name,
-    email: user.email,
-    password: user.password,
-    role: user.role,
-    status: user.role === 'Admin' ? 'Approved' : user.status,
-  };
+    const newUser: Omit<User, 'id' | 'password'> = {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.role === 'Admin' ? 'Approved' : user.status,
+    };
 
-  await setDoc(userRef, newUser);
-  return { id: user.id, ...newUser } as User;
+    await setDoc(userRef, newUser);
+    return { id: user.id, ...newUser } as User;
 };
 
 export const findUserByEmail = async (db: Firestore, email: string): Promise<User | undefined> => {
@@ -82,7 +78,8 @@ export const findUserByCredentials = async (db: Firestore, email: string, passwo
   const user = await findUserByEmail(db, email);
   if (!user) return undefined;
 
-  // This is an insecure password check. In a real app, use Firebase Auth.
+  // This check is insecure and only for demonstration.
+  // In a real app, Firebase Auth handles password verification securely on the backend.
   if (password && user.password && user.password === password) {
     return user;
   }
