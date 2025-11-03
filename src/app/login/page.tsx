@@ -76,7 +76,7 @@ export default function LoginPage() {
         });
         return;
       }
-      const existingUser = allUsers.find(u => u.email === email);
+      const existingUser = allUsers().find(u => u.email === email);
       if (existingUser) {
         toast({
             variant: "destructive",

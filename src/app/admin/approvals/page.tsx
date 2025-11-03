@@ -54,6 +54,7 @@ function AdminApprovalsContent() {
   const [userName, setUserName] = React.useState<string>(initialName);
   
   React.useEffect(() => {
+    // Fetch the latest pending users when the component mounts
     setPendingUsers(getPendingUsers());
   }, []);
 
@@ -85,6 +86,7 @@ function AdminApprovalsContent() {
       rejectUser(userId);
     }
 
+    // After approval/rejection, refresh the list of pending users
     setPendingUsers(getPendingUsers());
 
     toast({
