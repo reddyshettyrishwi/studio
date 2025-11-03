@@ -40,3 +40,11 @@ export type Campaign = {
   influencerId: string;
   approvalStatus: ApprovalStatus;
 };
+
+export type PendingUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: 'Pending';
+};

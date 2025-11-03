@@ -67,16 +67,8 @@ export default function LoginPage() {
     }
 
     if (isSigningUp) {
-      // Handle Sign Up for Manager/Executive
-      toast({
-        title: "Registration Successful!",
-        description: `Welcome, ${name}! You can now sign in.`,
-      });
-      setIsSigningUp(false); // Switch back to sign-in form
-      // Clear fields
-      setName("");
-      setEmail("");
-      setPassword("");
+      // For Manager/Executive, redirect to pending approval page
+      router.push('/pending-approval');
     } else {
       // Handle Sign In for Manager/Executive
       if (password === "123456") {

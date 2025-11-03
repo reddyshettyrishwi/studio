@@ -1,5 +1,5 @@
 
-import type { Influencer, Campaign } from './types';
+import type { Influencer, Campaign, PendingUser } from './types';
 
 export const influencers: Influencer[] = [
   {
@@ -321,4 +321,40 @@ export const campaigns: Campaign[] = [
     influencerId: 'inf-13',
     approvalStatus: 'Pending',
   },
+  {
+    id: 'camp-14',
+    name: 'Winter Fashion Haul',
+    department: 'Sales',
+    deliverables: '3 Instagram Posts, 1 Reel',
+    date: '2024-10-01',
+    pricePaid: 320000,
+    influencerId: 'inf-2',
+    approvalStatus: 'Pending'
+  },
+  {
+    id: 'camp-15',
+    name: 'New Smartphone Launch',
+    department: 'Marketing',
+    deliverables: '1 YouTube Review, 2 Instagram Stories',
+    date: '2024-10-05',
+    pricePaid: 450000,
+    influencerId: 'inf-1',
+    approvalStatus: 'Pending'
+  },
+  {
+    id: 'camp-16',
+    name: 'Food Festival Coverage',
+    department: 'Brand',
+    deliverables: '5 Instagram Stories, 1 Post',
+    date: '2024-10-12',
+    pricePaid: 250000,
+    influencerId: 'inf-6',
+    approvalStatus: 'Pending'
+  }
+];
+
+export const pendingUsers: PendingUser[] = [
+    { id: 'user-1', name: 'Charlie Brown', email: 'charlie.brown@example.com', role: 'Manager', status: 'Pending' },
+    { id: 'user-2', name: 'Lucy van Pelt', email: 'lucy.vanpelt@example.com', role: 'Executive', status: 'Pending' },
+    { id: 'user-3', name: 'Linus van Pelt', email: 'linus.vanpelt@example.com', role: 'Manager', status: 'Pending' },
 ];

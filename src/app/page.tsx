@@ -5,6 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation'
 import {
+  CheckCircle,
   Filter,
   Instagram,
   LayoutGrid,
@@ -205,6 +206,16 @@ function InfluencersContent() {
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
+             {userRole === 'Admin' && (
+              <SidebarMenuItem>
+                <Link href={`/admin/approvals?role=${userRole}&name=${userName}`} className="w-full">
+                  <SidebarMenuButton size="lg">
+                    <CheckCircle />
+                    Approvals
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>

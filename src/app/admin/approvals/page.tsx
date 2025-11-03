@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation'
 import {
   Home,
   LogOut,
@@ -13,7 +13,8 @@ import {
   UserRound,
   CheckCircle,
 } from "lucide-react";
-import { UserRole } from "@/lib/types";
+import { UserRole, PendingUser } from "@/lib/types";
+import { pendingUsers as initialPendingUsers } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -27,17 +28,62 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
-function MessagingContent() {
+
+function AdminApprovalsContent() {
   const searchParams = useSearchParams()
-  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
-  const initialName = searchParams.get('name') || "Jane Doe";
+  const initialRole = (searchParams.get('role') as UserRole) || "Admin";
+  const initialName = searchParams.get('name') || "Admin User";
 
+  const { toast } = useToast();
+  const [pendingUsers, setPendingUsers] = React.useState<PendingUser[]>(initialPendingUsers);
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
   const [userName, setUserName] = React.useState<string>(initialName);
   
+  if (userRole !== 'Admin') {
+    return (
+        <div className="flex min-h-screen flex-col items-center justify-center">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Access Denied</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>You do not have permission to view this page.</p>
+                    <Link href="/login">
+                        <Button className="mt-4">Return to Login</Button>
+                    </Link>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
+  const handleApproval = (userId: string, approve: boolean) => {
+    const user = pendingUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    setPendingUsers(prev => prev.filter(u => u.id !== userId));
+
+    toast({
+        title: `User ${approve ? 'Approved' : 'Rejected'}`,
+        description: `${user.name}'s account has been ${approve ? 'approved' : 'rejected'}.`,
+    });
+  }
+
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -92,22 +138,20 @@ function MessagingContent() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton isActive size="lg">
+                <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
-             {userRole === 'Admin' && (
-              <SidebarMenuItem>
-                <Link href={`/admin/approvals?role=${userRole}&name=${userName}`} className="w-full">
-                  <SidebarMenuButton size="lg">
-                    <CheckCircle />
-                    Approvals
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            )}
+             <SidebarMenuItem>
+              <Link href={`/admin/approvals?role=${userRole}&name=${userName}`} className="w-full">
+                <SidebarMenuButton isActive size="lg">
+                  <CheckCircle />
+                  Approvals
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -128,17 +172,43 @@ function MessagingContent() {
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
                 <div className="flex items-center gap-4">
                     <SidebarTrigger className="md:hidden" />
-                    <h2 className="text-3xl font-headline font-bold tracking-tight">Messaging</h2>
+                    <h2 className="text-3xl font-headline font-bold tracking-tight">User Approvals</h2>
                 </div>
             </div>
             
             <Card>
               <CardHeader>
-                <CardTitle>Coming Soon</CardTitle>
+                <CardTitle>Pending Registrations</CardTitle>
+                <CardContent>
+                    {pendingUsers.length > 0 ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {pendingUsers.map(user => (
+                            <TableRow key={user.id}>
+                                <TableCell className="font-medium">{user.name}</TableCell>
+                                <TableCell>{user.email}</TableCell>
+                                <TableCell><Badge variant="secondary">{user.role}</Badge></TableCell>
+                                <TableCell className="space-x-2">
+                                    <Button size="sm" onClick={() => handleApproval(user.id, true)}>Approve</Button>
+                                    <Button size="sm" variant="destructive" onClick={() => handleApproval(user.id, false)}>Reject</Button>
+                                </TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    ) : (
+                        <p className="text-muted-foreground pt-4">No pending user registrations.</p>
+                    )}
+                </CardContent>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">The messaging feature is under construction. Check back soon!</p>
-              </CardContent>
             </Card>
 
         </main>
@@ -147,10 +217,10 @@ function MessagingContent() {
   );
 }
 
-export default function MessagingPage() {
+export default function AdminApprovalsPage() {
   return (
     <React.Suspense fallback={<div>Loading...</div>}>
-      <MessagingContent />
+      <AdminApprovalsContent />
     </React.Suspense>
   );
 }
