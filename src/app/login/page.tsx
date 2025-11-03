@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -59,6 +59,52 @@ export default function LoginPage() {
   
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
+  const handleAdminSignIn = async () => {
+    if (email !== 'admin@nxtwave.co.in' || password !== '12345678') {
+      toast({
+        variant: "destructive",
+        title: "Admin Sign In Failed",
+        description: "Invalid credentials for Admin sign in.",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!db || !auth) {
+        toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
+        setIsLoading(false);
+        return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push(`/dashboard?role=Admin&name=Admin%20User`);
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email: email, role: 'Admin', status: 'Approved' });
+          router.push(`/dashboard?role=Admin&name=Admin%20User`);
+        } catch (signUpError: any) {
+          toast({
+            variant: "destructive",
+            title: "Admin Setup Failed",
+            description: signUpError.message || "Could not create the initial admin user.",
+          });
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Admin Sign In Failed",
+          description: error.message || "An unexpected error occurred.",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
   const handleAuthAction = async () => {
     if (!db || !auth) {
       toast({
@@ -72,43 +118,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     if (selectedRole === 'Admin') {
-      if (email === 'admin@nxtwave.co.in' && password === '12345678') {
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-            const displayName = extractNameFromEmail(email);
-            router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
-        } catch (error: any) {
-            if (error.code === 'auth/user-not-found') {
-                 try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email: email, role: 'Admin', status: 'Approved' });
-                    const displayName = extractNameFromEmail(email);
-                    router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
-                } catch(e: any) {
-                     toast({
-                        variant: "destructive",
-                        title: "Admin Sign Up Failed",
-                        description: e.message || "Could not create admin user.",
-                    });
-                }
-            } else {
-                 toast({
-                    variant: "destructive",
-                    title: "Admin Sign In Failed",
-                    description: error.message || "An unexpected error occurred.",
-                });
-            }
-        } finally {
-            setIsLoading(false);
-        }
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Admin Sign In Failed",
-          description: "Invalid credentials for Admin sign in.",
-        });
-        setIsLoading(false);
-      }
+      await handleAdminSignIn();
       return;
     }
 
@@ -125,7 +135,8 @@ export default function LoginPage() {
         router.push('/pending-approval');
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "An error occurred during sign up." });
-         setIsLoading(false);
+      } finally {
+        setIsLoading(false);
       }
     } else { // Sign In
       try {
@@ -142,52 +153,12 @@ export default function LoginPage() {
         }
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: error.message || "Invalid credentials." });
+      } finally {
          setIsLoading(false);
       }
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    if (!db || !auth) {
-        toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
-        return;
-    }
-    
-    setIsLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-        const result = await signInWithPopup(auth, provider);
-        const googleUser = result.user;
-        const existingUser = await findUserByEmail(db, googleUser.email!);
-
-        if (existingUser) {
-            if (existingUser.status === 'Approved') {
-                router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
-            } else {
-                router.push('/pending-approval');
-            }
-        } else {
-            // User doesn't exist, create a new document
-             const newUser = {
-                id: googleUser.uid,
-                name: googleUser.displayName || extractNameFromEmail(googleUser.email!),
-                email: googleUser.email!,
-                role: 'Manager' as UserRole, // Default role
-                status: 'Pending' as const,
-            };
-            await addUser(db, newUser);
-            router.push('/pending-approval');
-        }
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Google Sign-In Failed",
-            description: error.message || "An unexpected error occurred.",
-        });
-    } finally {
-        setIsLoading(false);
-    }
-  };
 
   return (
     <div className="flex min-h-screen items-center justify-center">
