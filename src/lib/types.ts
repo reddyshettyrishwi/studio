@@ -48,3 +48,11 @@ export type PendingUser = {
   role: UserRole;
   status: 'Pending';
 };
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+}

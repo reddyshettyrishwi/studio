@@ -1,5 +1,5 @@
 
-import type { Influencer, Campaign, PendingUser } from './types';
+import type { Influencer, Campaign, PendingUser, User } from './types';
 
 export const influencers: Influencer[] = [
   {
@@ -353,8 +353,64 @@ export const campaigns: Campaign[] = [
   }
 ];
 
-export const pendingUsers: PendingUser[] = [
+
+let pendingUsers: PendingUser[] = [
     { id: 'user-1', name: 'Charlie Brown', email: 'charlie.brown@example.com', role: 'Manager', status: 'Pending' },
     { id: 'user-2', name: 'Lucy van Pelt', email: 'lucy.vanpelt@example.com', role: 'Executive', status: 'Pending' },
     { id: 'user-3', name: 'Linus van Pelt', email: 'linus.vanpelt@example.com', role: 'Manager', status: 'Pending' },
 ];
+
+let allUsers: User[] = [
+    { id: 'user-4', name: 'Approved Manager', email: 'manager@approved.com', password: 'password', role: 'Manager' }
+];
+let approvedUsers: string[] = ['manager@approved.com'];
+
+export const getPendingUsers = () => [...pendingUsers];
+
+export const approveUser = (userId: string) => {
+    const userToApprove = pendingUsers.find(u => u.id === userId);
+    if (userToApprove) {
+        pendingUsers = pendingUsers.filter(u => u.id !== userId);
+        const fullUser = allUsers.find(u => u.email === userToApprove.email);
+        if (fullUser) {
+            approvedUsers.push(fullUser.email);
+        }
+    }
+};
+
+export const rejectUser = (userId: string) => {
+    const userToReject = pendingUsers.find(u => u.id === userId);
+    if (userToReject) {
+        pendingUsers = pendingUsers.filter(u => u.id !== userId);
+        allUsers = allUsers.filter(u => u.email !== userToReject.email);
+    }
+};
+
+
+export const addUser = (user: Omit<User, 'id'>) => {
+    const newUser: User = {
+        id: `user-${Date.now()}`,
+        ...user,
+    };
+    allUsers.push(newUser);
+    if (user.role !== 'Admin') {
+        const newPendingUser: PendingUser = {
+            id: newUser.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: 'Pending',
+        };
+        pendingUsers.push(newPendingUser);
+    }
+};
+
+export const isUserApproved = (email: string): boolean => {
+    return approvedUsers.includes(email);
+};
+
+export const findUserByCredentials = (email: string, password?: string): User | undefined => {
+    return allUsers.find(u => u.email === email && (password ? u.password === password : true));
+};
+
+export { allUsers };
