@@ -13,8 +13,7 @@ service cloud.firestore {
     
     function isAdmin() {
       // In a real app, this would check for a custom claim or a specific role in the database.
-      // For this demo, we'll assume any signed-in user can be an admin for approval purposes.
-      // This is NOT secure for production.
+      // For this demo, we'll check a 'role' field on the user's document.
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
@@ -24,6 +23,8 @@ service cloud.firestore {
         let data = request.resource.data;
         return data.name is string &&
                data.email is string &&
+               data.role is string &&
+               data.status is string &&
                data.keys().hasAll(['name', 'email', 'role', 'status']);
       }
       
@@ -32,7 +33,7 @@ service cloud.firestore {
         // Check that only 'status' is being updated.
         return data.keys().hasOnly(['status']) && 
                data.status is string && 
-               (data.status == 'Approved' || data.status == 'Rejected'); // Or other valid statuses
+               (data.status == 'Approved' || data.status == 'Rejected');
       }
 
       // SECURITY:
@@ -40,14 +41,13 @@ service cloud.firestore {
       allow get: if isOwner(userId);
 
       // Do not allow anyone to list all users.
-      allow list: if false;
+      allow list: if isSignedIn() && query.get("status") == "Pending" && isAdmin();
+
 
       // Allow a user to create their own user document if the data is valid.
-      // This is crucial for social sign-ins where the user record is created after authentication.
       allow create: if isOwner(userId) && isNewUserDataValid();
 
       // Allow an admin to update a user's status (e.g., for approvals).
-      // Allow a user to update limited fields on their own profile (not implemented here, but possible).
       allow update: if isAdmin() && isStatusUpdateValid();
                        
       // Allow a user to delete their own account.
@@ -55,28 +55,18 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows admins to manage agencies.
-     * @path /agencies/{agencyId}
-     * @allow (create) request.auth.uid == 'admin_user'
-     * @allow (get, list) true
-     * @deny (update, delete) request.auth.uid != 'admin_user'
-     * @principle Restricts agency management to authorized users.
+     * @description Allows admins to manage agencies. Any signed-in user can read.
      */
     match /agencies/{agencyId} {
-      allow get, list: if true;
+      allow get, list: if isSignedIn();
       allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Controls access to influencer profiles based on agency association.
-     * @path /influencers/{influencerId}
-     * @allow (get, list) true
-     * @allow (create) request.resource.data.agencyId != null  // Example: Allow creation if associated with an agency.
-     * @deny (update, delete) false // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Manages access based on agency association.
+     * @description Controls access to influencer profiles. Any signed-in user can read.
      */
     match /influencers/{influencerId} {
-      allow get, list: if true; // Allow public read access.
+      allow get, list: if isSignedIn();
 
       // Allow any signed-in user to create, update, or delete influencers for now.
       // In a real app, this would be restricted to 'Managers' or 'Admins'.
@@ -84,14 +74,10 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages access to campaigns.
-     * @path /campaigns/{campaignId}
-     * @allow (get, list) true
-     * @deny (create, update, delete) false // TODO: Add owner validation once the schema is updated with an ownership field.
-     * @principle Controls access to campaigns.
+     * @description Manages access to campaigns. Any signed-in user can read.
      */
     match /campaigns/{campaignId} {
-      allow get, list: if true;
+      allow get, list: if isSignedIn();
 
       // Allow any signed-in user to create, update, or delete campaigns for now.
       // In a real app, this would be restricted to 'Managers'.
