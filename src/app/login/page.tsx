@@ -20,8 +20,9 @@ import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addUser, isUserApproved, findUserByCredentials } from "@/lib/data";
-import { useFirestore } from "@/firebase";
+import { addUser, findUserByCredentials } from "@/lib/data";
+import { useAuth, useFirestore } from "@/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -48,6 +49,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const db = useFirestore();
+  const auth = useAuth();
   const [isSigningUp, setIsSigningUp] = React.useState(false);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -117,6 +119,53 @@ export default function LoginPage() {
       }
     }
   };
+
+  const handleGoogleSignIn = async () => {
+    if (!db || !auth) {
+        toast({
+            variant: "destructive",
+            title: "Initialization Error",
+            description: "Firebase is not ready. Please try again in a moment.",
+        });
+        return;
+    }
+
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const googleUser = result.user;
+        
+        if (!googleUser.email) {
+            throw new Error("Could not retrieve email from Google Sign-In.");
+        }
+
+        const existingUser = await findUserByCredentials(db, googleUser.email);
+
+        if (existingUser) {
+            if (existingUser.status === 'Approved') {
+                router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
+            } else {
+                router.push('/pending-approval');
+            }
+        } else {
+            // New user, sign them up
+            const newUser = {
+                name: googleUser.displayName || extractNameFromEmail(googleUser.email),
+                email: googleUser.email,
+                role: selectedRole, // Defaults to Manager or what's selected
+                status: 'Pending' as 'Pending' | 'Approved',
+            };
+            await addUser(db, newUser);
+            router.push('/pending-approval');
+        }
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: error.message || "An unexpected error occurred.",
+        });
+    }
+  };
   
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
@@ -148,14 +197,19 @@ export default function LoginPage() {
               <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
           )}
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
+          {!(isSigningUp && !isManagerOrExecutive) && (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+            </>
+          )}
+
           <div className="grid gap-2">
             <Label>Select Role</Label>
             <RadioGroup
@@ -199,7 +253,21 @@ export default function LoginPage() {
         </CardContent>
         {isManagerOrExecutive && (
            <CardFooter className="flex-col gap-4">
-              <div className="text-sm">
+              {!isSigningUp && (
+                <>
+                <div className="relative w-full">
+                    <Separator />
+                    <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
+                    OR
+                    </span>
+                </div>
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Sign in with Google
+                </Button>
+                </>
+              )}
+               <div className="text-sm">
                 <button
                   onClick={() => setIsSigningUp(!isSigningUp)}
                   className="font-medium text-primary hover:underline"
@@ -209,16 +277,6 @@ export default function LoginPage() {
                     : "Don't have an account? Sign Up"}
                 </button>
               </div>
-              <div className="relative w-full">
-                <Separator />
-                <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
-                  OR
-                </span>
-              </div>
-              <Button variant="outline" className="w-full">
-                <Chrome className="mr-2 h-4 w-4" />
-                Sign in with Google
-              </Button>
           </CardFooter>
         )}
       </Card>
