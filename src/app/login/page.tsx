@@ -59,8 +59,8 @@ export default function LoginPage() {
       } else {
         toast({
           variant: "destructive",
-          title: "Admin Sign Up Failed",
-          description: "Invalid credentials for Admin registration.",
+          title: "Admin Sign In Failed",
+          description: "Invalid credentials for Admin sign in.",
         });
       }
       return;
@@ -107,10 +107,10 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">
-            {selectedRole === 'Admin' ? 'Admin Sign Up' : (isSigningUp ? "Create Account" : "Sign In")}
+            {selectedRole === 'Admin' ? 'Admin Sign In' : (isSigningUp ? "Create Account" : "Sign In")}
           </CardTitle>
           <CardDescription>
-            {selectedRole === 'Admin' ? 'Enter admin credentials to create the account.' : (isSigningUp
+            {selectedRole === 'Admin' ? 'Enter admin credentials to access the dashboard.' : (isSigningUp
               ? "Enter your details to create a new account."
               : "Enter your credentials to access the dashboard.")}
           </CardDescription>
@@ -167,7 +167,7 @@ export default function LoginPage() {
             </RadioGroup>
           </div>
           <Button onClick={handleAuthAction} className="w-full">
-            {selectedRole === 'Admin' ? 'Sign Up' : (isSigningUp ? "Sign Up" : "Sign In")}
+            {selectedRole === 'Admin' ? 'Sign In' : (isSigningUp ? "Sign Up" : "Sign In")}
           </Button>
         </CardContent>
         {isManagerOrExecutive && (
