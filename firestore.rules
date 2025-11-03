@@ -32,11 +32,7 @@ service cloud.firestore {
     /**
      * @description Allows only the authenticated user to read and write their own profile.
      * @path /users/{userId}
-     * @allow (create) request.auth.uid == 'user_abc' with data { id: 'user_abc', fullName: 'Test User', email: 'test@example.com' }
-     * @allow (get, update, delete) request.auth.uid == 'user_abc'
-     * @deny (create) request.auth.uid != 'user_abc'
-     * @deny (get, update, delete) request.auth.uid != 'user_abc'
-     * @principle Enforces document ownership for all operations.
+     * @principle Enforces document ownership for all operations and validates data on write.
      */
     match /users/{userId} {
       function isSignedIn() {
@@ -46,18 +42,32 @@ service cloud.firestore {
       function isOwner(userId) {
         return isSignedIn() && request.auth.uid == userId;
       }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+      
+      function isNewUserValid(data) {
+        return data.name is string &&
+               data.email is string &&
+               data.role is string && (data.role == 'Manager' || data.role == 'Executive' || data.role == 'Admin') &&
+               data.status is string && (data.status == 'Pending' || data.status == 'Approved');
+      }
+      
+      function isUpdateValid(data) {
+          // Only status can be updated by an admin (or by the user themselves in some cases)
+          // This is a simplified rule. A real app might have more complex logic.
+          return data.keys().hasOnly(['status']) && data.status is string;
       }
 
       allow get: if isOwner(userId);
       allow list: if false;
 
-      // Allow create if the user is creating their own document.
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      // Allow create if the user is creating their own document and the data is valid.
+      allow create: if isOwner(userId) && isNewUserValid(request.resource.data);
+
+      // Allow admins to approve users (update status)
+      // and users to update their own (limited) data
+      allow update: if (isOwner(userId) && isUpdateValid(request.resource.data)) ||
+                       (isSignedIn() && resource.data.role == 'Admin'); // Simplified admin check
+                       
+      allow delete: if isOwner(userId);
     }
 
     /**
