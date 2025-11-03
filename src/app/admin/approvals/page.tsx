@@ -41,12 +41,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-
+import { useFirestore } from "@/firebase";
 
 function AdminApprovalsContent() {
   const searchParams = useSearchParams()
   const initialRole = (searchParams.get('role') as UserRole) || "Admin";
   const initialName = searchParams.get('name') || "Admin User";
+  const db = useFirestore();
 
   const { toast } = useToast();
   const [pendingUsers, setPendingUsers] = React.useState<PendingUser[]>([]);
@@ -54,9 +55,12 @@ function AdminApprovalsContent() {
   const [userName, setUserName] = React.useState<string>(initialName);
   
   React.useEffect(() => {
-    // Fetch the latest pending users when the component mounts
-    setPendingUsers(getPendingUsers());
-  }, []);
+    if (!db) return;
+    const unsub = getPendingUsers(db, (users) => {
+      setPendingUsers(users);
+    });
+    return () => unsub();
+  }, [db]);
 
   if (userRole !== 'Admin') {
     return (
@@ -76,18 +80,16 @@ function AdminApprovalsContent() {
     );
   }
 
-  const handleApproval = (userId: string, approve: boolean) => {
+  const handleApproval = async (userId: string, approve: boolean) => {
+    if (!db) return;
     const user = pendingUsers.find(u => u.id === userId);
     if (!user) return;
 
     if (approve) {
-      approveUser(userId);
+      await approveUser(db, userId);
     } else {
-      rejectUser(userId);
+      await rejectUser(db, userId);
     }
-
-    // After approval/rejection, refresh the list of pending users
-    setPendingUsers(getPendingUsers());
 
     toast({
         title: `User ${approve ? 'Approved' : 'Rejected'}`,

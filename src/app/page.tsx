@@ -21,7 +21,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Influencer, UserRole, Platform } from "@/lib/types";
-import { influencers as initialInfluencers } from "@/lib/data";
+import { addInfluencer as addInfluencerToDb } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -65,6 +65,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useFirestore } from "@/firebase";
+import { collection, onSnapshot, Timestamp } from "firebase/firestore";
+
 
 const platformIcons: Record<Platform, React.ReactNode> = {
   YouTube: <Youtube className="h-4 w-4 text-red-500" />,
@@ -83,8 +86,9 @@ function InfluencersContent() {
   const initialRole = (searchParams.get('role') as UserRole) || "Manager";
   const initialName = searchParams.get('name') || "Jane Doe";
 
-
-  const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
+  const db = useFirestore();
+  const [initialInfluencers, setInitialInfluencers] = React.useState<Influencer[]>([]);
+  const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "table">("grid");
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
@@ -101,8 +105,30 @@ function InfluencersContent() {
   
   const [isAddInfluencerOpen, setAddInfluencerOpen] = React.useState(false);
 
-  const categories = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.category))], []);
-  const languages = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.language))], []);
+  React.useEffect(() => {
+    if (!db) return;
+    const unsub = onSnapshot(collection(db, "influencers"), (snapshot) => {
+      const fetchedInfluencers = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const lastPromotionDate = data.lastPromotionDate instanceof Timestamp
+          ? data.lastPromotionDate.toDate().toISOString()
+          : data.lastPromotionDate;
+
+        return {
+          id: doc.id,
+          ...data,
+          lastPromotionDate,
+        } as Influencer;
+      });
+      setInfluencers(fetchedInfluencers);
+      setInitialInfluencers(fetchedInfluencers);
+    });
+    return () => unsub();
+  }, [db]);
+
+
+  const categories = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.category))], [initialInfluencers]);
+  const languages = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.language))], [initialInfluencers]);
 
   const handleFilterChange = (type: keyof typeof filters, value: string) => {
     setFilters(prev => {
@@ -130,13 +156,9 @@ function InfluencersContent() {
     });
   }, [influencers, searchQuery, filters]);
 
-  const addInfluencer = (newInfluencer: Omit<Influencer, 'id' | 'avatar'>) => {
-    const influencerToAdd: Influencer = {
-      ...newInfluencer,
-      id: `inf-${Date.now()}`,
-      avatar: `https://picsum.photos/seed/${Date.now()}/100/100`
-    };
-    setInfluencers(prev => [influencerToAdd, ...prev]);
+  const addInfluencer = async (newInfluencer: Omit<Influencer, 'id' | 'avatar'>) => {
+    if (!db) return;
+    await addInfluencerToDb(db, newInfluencer);
   };
   
   const isDataOutdated = (dateString: string) => {

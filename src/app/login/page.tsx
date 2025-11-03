@@ -20,7 +20,8 @@ import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addUser, isUserApproved, findUserByCredentials, allUsers } from "@/lib/data";
+import { addUser, isUserApproved, findUserByCredentials } from "@/lib/data";
+import { useFirestore } from "@/firebase";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -46,13 +47,23 @@ const extractNameFromEmail = (email: string): string => {
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const db = useFirestore();
   const [isSigningUp, setIsSigningUp] = React.useState(false);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
 
-  const handleAuthAction = () => {
+  const handleAuthAction = async () => {
+    if (!db) {
+        toast({
+            variant: "destructive",
+            title: "Database Error",
+            description: "Could not connect to the database. Please try again later.",
+        });
+        return;
+    }
+
     if (selectedRole === 'Admin') {
       if (email === 'admin@nxtwave.co.in' && password === '12345678') {
         const displayName = extractNameFromEmail(email);
@@ -76,24 +87,22 @@ export default function LoginPage() {
         });
         return;
       }
-      const existingUser = allUsers().find(u => u.email === email);
-      if (existingUser) {
-        toast({
+      try {
+        await addUser(db, { name, email, password, role: selectedRole, status: 'Pending' });
+        router.push('/pending-approval');
+      } catch (error: any) {
+         toast({
             variant: "destructive",
             title: "Sign Up Failed",
-            description: "An account with this email already exists.",
+            description: error.message || "An error occurred during sign up.",
         });
-        return;
       }
-      
-      addUser({ name, email, password, role: selectedRole });
-      router.push('/pending-approval');
     } else {
       // Handle Sign In for Manager/Executive
-      const user = findUserByCredentials(email, password);
+      const user = await findUserByCredentials(db, email, password);
       
       if(user) {
-        if (isUserApproved(email)) {
+        if (user.status === 'Approved') {
             const displayName = user.name;
             router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(displayName)}`);
         } else {

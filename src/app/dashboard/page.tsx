@@ -14,7 +14,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { Influencer, Campaign, UserRole, ApprovalStatus } from "@/lib/types";
-import { influencers as initialInfluencers, campaigns as initialCampaigns } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -39,7 +38,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { useFirestore } from "@/firebase";
+import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   const variant = {
@@ -61,12 +62,41 @@ function DashboardContent() {
   const initialRole = (searchParams.get('role') as UserRole) || "Manager";
   const initialName = searchParams.get('name') || "Jane Doe";
 
-
-  const [influencers, setInfluencers] = React.useState<Influencer[]>(initialInfluencers);
-  const [campaigns, setCampaigns] = React.useState<Campaign[]>(initialCampaigns);
+  const db = useFirestore();
+  const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
+  const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
   const [userName, setUserName] = React.useState<string>(initialName);
   
+  React.useEffect(() => {
+    if (!db) return;
+    const unsubCampaigns = onSnapshot(collection(db, "campaigns"), (snapshot) => {
+      const fetchedCampaigns = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const date = data.date instanceof Timestamp
+          ? data.date.toDate().toISOString()
+          : data.date;
+        return {
+          id: doc.id,
+          ...data,
+          date,
+        } as Campaign;
+      });
+      setCampaigns(fetchedCampaigns);
+    });
+
+    const unsubInfluencers = onSnapshot(collection(db, "influencers"), (snapshot) => {
+      const fetchedInfluencers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Influencer));
+      setInfluencers(fetchedInfluencers);
+    });
+
+    return () => {
+      unsubCampaigns();
+      unsubInfluencers();
+    };
+  }, [db]);
+
+
   // Analytics data
   const totalInfluencers = influencers.length;
   const totalCampaigns = campaigns.length;
@@ -244,7 +274,7 @@ function DashboardContent() {
                             ) : 'N/A'}
                           </TableCell>
                           <TableCell><Badge variant="outline">{campaign.department}</Badge></TableCell>
-                          <TableCell>{format(new Date(campaign.date), 'dd MMM yyyy')}</TableCell>
+                           <TableCell>{format(parseISO(campaign.date), 'dd MMM yyyy')}</TableCell>
                           <TableCell>
                             <StatusBadge status={campaign.approvalStatus} />
                           </TableCell>

@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import ParticleField from '@/components/particle-field';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'InfluenceWise',
@@ -21,9 +22,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-gradient-radial-spread">
-        <ParticleField />
-        {children}
-        <Toaster />
+        <FirebaseClientProvider>
+          <ParticleField />
+          {children}
+          <Toaster />
+        </FirebaseClientProvider>
       </body>
     </html>
   );

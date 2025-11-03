@@ -81,7 +81,7 @@ export default function LogCampaignDialog({
         }
     });
     return () => subscription.unsubscribe();
-  }, [watch, getValues]);
+  }, [watch, getValues, influencers]);
 
   const handlePriceCheck = (influencerId?: string, pricePaid?: number) => {
     clearTimeout(debounceTimeout.current);
@@ -95,7 +95,7 @@ export default function LogCampaignDialog({
           const result = await alertOnPriceAnomalies({
             influencerName: selectedInfluencer.name,
             proposedPrice: pricePaid,
-            previousPriceBenchmarks: [selectedInfluencer.lastPricePaid],
+            previousPriceBenchmarks: selectedInfluencer.lastPricePaid ? [selectedInfluencer.lastPricePaid] : [],
           });
           if (result.isPriceTooHigh) {
             setPriceAnomaly(result);
