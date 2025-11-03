@@ -55,27 +55,24 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows admins to manage agencies. Any signed-in user can read.
+     * @description Allows any signed-in user to manage agencies.
      */
     match /agencies/{agencyId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     /**
-     * @description Controls access to influencer profiles. Any signed-in user can read.
+     * @description Allows any signed-in user to manage influencer profiles.
      */
     match /influencers/{influencerId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     /**
-     * @description Manages access to campaigns. Any signed-in user can read.
+     * @description Allows any signed-in user to manage campaigns.
      */
     match /campaigns/{campaignId} {
-      allow get, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
   }
 }
