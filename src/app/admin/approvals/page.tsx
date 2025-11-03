@@ -14,7 +14,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { UserRole, PendingUser } from "@/lib/types";
-import { pendingUsers as initialPendingUsers, approveUser, rejectUser, getPendingUsers } from "@/lib/data";
+import { approveUser, rejectUser, getPendingUsers } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -189,36 +189,36 @@ function AdminApprovalsContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Pending Registrations</CardTitle>
-                <CardContent>
-                    {pendingUsers.length > 0 ? (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {pendingUsers.map(user => (
-                            <TableRow key={user.id}>
-                                <TableCell className="font-medium">{user.name}</TableCell>
-                                <TableCell>{user.email}</TableCell>
-                                <TableCell><Badge variant="secondary">{user.role}</Badge></TableCell>
-                                <TableCell className="space-x-2">
-                                    <Button size="sm" onClick={() => handleApproval(user.id, true)}>Approve</Button>
-                                    <Button size="sm" variant="destructive" onClick={() => handleApproval(user.id, false)}>Reject</Button>
-                                </TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                    ) : (
-                        <p className="text-muted-foreground pt-4">No pending user registrations.</p>
-                    )}
-                </CardContent>
               </CardHeader>
+              <CardContent>
+                  {pendingUsers.length > 0 ? (
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Actions</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {pendingUsers.map(user => (
+                          <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.name}</TableCell>
+                              <TableCell>{user.email}</TableCell>
+                              <TableCell><Badge variant="secondary">{user.role}</Badge></TableCell>
+                              <TableCell className="space-x-2">
+                                  <Button size="sm" onClick={() => handleApproval(user.id, true)}>Approve</Button>
+                                  <Button size="sm" variant="destructive" onClick={() => handleApproval(user.id, false)}>Reject</Button>
+                              </TableCell>
+                          </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+                  ) : (
+                      <p className="text-muted-foreground pt-4">No pending user registrations.</p>
+                  )}
+              </CardContent>
             </Card>
 
         </main>
