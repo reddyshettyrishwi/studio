@@ -21,7 +21,7 @@ export default function PendingApprovalPage() {
                 </div>
                 <CardTitle className="text-2xl font-headline">Registration Submitted</CardTitle>
                 <CardDescription>
-                    Thank you for signing up! Your account is currently pending approval from an administrator. You will be notified via email once your account has been approved.
+                    Thank you for signing up! Your account is currently pending approval from an administrator. Please check back in 24 hours to see if your account has been approved.
                 </CardDescription>
             </CardHeader>
             <CardContent>
