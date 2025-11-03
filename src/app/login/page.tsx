@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -66,6 +66,7 @@ export default function LoginPage() {
       try {
         const result = await getRedirectResult(auth);
         if (result && result.user) {
+          setIsLoading(true);
           const googleUser = result.user;
           const existingUser = await findUserByEmail(db, googleUser.email!);
 
@@ -81,26 +82,29 @@ export default function LoginPage() {
                 id: googleUser.uid,
                 name: googleUser.displayName || extractNameFromEmail(googleUser.email!),
                 email: googleUser.email!,
-                role: selectedRole, // Role selected on the UI before redirect
+                role: 'Manager', // Default role for new Google sign-ups
                 status: 'Pending' as const,
             };
             await addUser(db, newUser);
             router.push('/pending-approval');
           }
-        } else {
-          // No redirect result, user might be already logged in or just visiting
-          if (auth.currentUser) {
-            // User is already signed in, check their status and redirect
-            const user = await findUserByEmail(db, auth.currentUser.email!);
-            if (user && user.status === 'Approved') {
-                 router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
-            } else {
-                // If user is not approved or not found in DB, they can stay on login page to try again
-                setIsLoading(false);
-            }
+        } else if (auth.currentUser) {
+          // User is already signed in, check their status and redirect
+          setIsLoading(true);
+          const user = await findUserByEmail(db, auth.currentUser.email!);
+          if (user && user.status === 'Approved') {
+            router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
           } else {
-             setIsLoading(false);
+            // User exists but isn't approved, or DB entry is missing.
+            // Let them stay on the login page or send to pending.
+             if (user && user.status === 'Pending') {
+                 router.push('/pending-approval');
+             } else {
+                setIsLoading(false);
+             }
           }
+        } else {
+           setIsLoading(false);
         }
       } catch (error: any) {
         toast({
@@ -114,7 +118,7 @@ export default function LoginPage() {
 
     handleRedirect();
 
-  }, [auth, db, router, toast, selectedRole]);
+  }, [auth, db, router, toast]);
 
 
   const handleAuthAction = async () => {
@@ -334,3 +338,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
