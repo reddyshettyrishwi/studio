@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { addUser, isUserApproved, findUserByCredentials, allUsers } from "@/lib/data";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -67,17 +68,48 @@ export default function LoginPage() {
     }
 
     if (isSigningUp) {
-      // For Manager/Executive, redirect to pending approval page
+      if (!name || !email || !password) {
+        toast({
+          variant: "destructive",
+          title: "Sign Up Failed",
+          description: "Please fill in all fields.",
+        });
+        return;
+      }
+      const existingUser = allUsers.find(u => u.email === email);
+      if (existingUser) {
+        toast({
+            variant: "destructive",
+            title: "Sign Up Failed",
+            description: "An account with this email already exists.",
+        });
+        return;
+      }
+      
+      addUser({ name, email, password, role: selectedRole });
       router.push('/pending-approval');
     } else {
       // Handle Sign In for Manager/Executive
-      // This is a placeholder for actual authentication.
-      // For now, we'll just show an error and prompt them to sign up.
-      toast({
-        variant: "destructive",
-        title: "Sign In Failed",
-        description: "Invalid credentials. Please sign up if you don't have an account.",
-      });
+      const user = findUserByCredentials(email, password);
+      
+      if(user) {
+        if (isUserApproved(email)) {
+            const displayName = user.name;
+            router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(displayName)}`);
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: "Your account is still pending approval.",
+            });
+        }
+      } else {
+         toast({
+            variant: "destructive",
+            title: "Sign In Failed",
+            description: "Invalid credentials. Please sign up if you don't have an account.",
+        });
+      }
     }
   };
   
@@ -108,16 +140,16 @@ export default function LoginPage() {
           {isSigningUp && isManagerOrExecutive && (
             <div className="grid gap-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
           )}
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           <div className="grid gap-2">
             <Label>Select Role</Label>

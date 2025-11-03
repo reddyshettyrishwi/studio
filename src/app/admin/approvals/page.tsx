@@ -14,7 +14,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { UserRole, PendingUser } from "@/lib/types";
-import { pendingUsers as initialPendingUsers } from "@/lib/data";
+import { pendingUsers as initialPendingUsers, approveUser, rejectUser, getPendingUsers } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -49,7 +49,7 @@ function AdminApprovalsContent() {
   const initialName = searchParams.get('name') || "Admin User";
 
   const { toast } = useToast();
-  const [pendingUsers, setPendingUsers] = React.useState<PendingUser[]>(initialPendingUsers);
+  const [pendingUsers, setPendingUsers] = React.useState<PendingUser[]>(getPendingUsers());
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
   const [userName, setUserName] = React.useState<string>(initialName);
   
@@ -75,7 +75,13 @@ function AdminApprovalsContent() {
     const user = pendingUsers.find(u => u.id === userId);
     if (!user) return;
 
-    setPendingUsers(prev => prev.filter(u => u.id !== userId));
+    if (approve) {
+      approveUser(userId);
+    } else {
+      rejectUser(userId);
+    }
+
+    setPendingUsers(getPendingUsers());
 
     toast({
         title: `User ${approve ? 'Approved' : 'Rejected'}`,
