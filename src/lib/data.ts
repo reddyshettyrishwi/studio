@@ -361,6 +361,7 @@ let pendingUsers: PendingUser[] = [
 ];
 
 let allUsers: User[] = [
+    ...pendingUsers.map(u => ({ ...u, password: 'password' })),
     { id: 'user-4', name: 'Approved Manager', email: 'manager@approved.com', password: 'password', role: 'Manager' }
 ];
 let approvedUsers: string[] = ['manager@approved.com'];

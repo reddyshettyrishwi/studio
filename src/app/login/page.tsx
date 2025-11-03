@@ -156,6 +156,7 @@ export default function LoginPage() {
             <RadioGroup
               defaultValue="Manager"
               className="grid grid-cols-3 gap-4"
+              value={selectedRole}
               onValueChange={(value: UserRole) => setSelectedRole(value)}
             >
               <div>
