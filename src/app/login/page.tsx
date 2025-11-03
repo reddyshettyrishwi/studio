@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult } from "firebase/auth";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -55,6 +55,56 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!auth) {
+        setIsLoading(false);
+        return;
+    };
+    
+    getRedirectResult(auth)
+      .then(async (result) => {
+        setIsLoading(false);
+        if (!result) {
+          return;
+        }
+
+        const googleUser = result.user;
+        if (!googleUser.email) {
+          throw new Error("Could not retrieve email from Google Sign-In.");
+        }
+
+        const existingUser = await findUserByEmail(db, googleUser.email);
+
+        if (existingUser) {
+          if (existingUser.status === 'Approved') {
+            router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
+          } else {
+            router.push('/pending-approval');
+          }
+        } else {
+          const newUser = {
+            id: googleUser.uid,
+            name: googleUser.displayName || extractNameFromEmail(googleUser.email),
+            email: googleUser.email,
+            role: selectedRole,
+            status: 'Pending' as 'Pending' | 'Approved',
+          };
+          await addUser(db, newUser);
+          router.push('/pending-approval');
+        }
+      })
+      .catch((error) => {
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Google Sign-In Failed",
+          description: error.message || "An unexpected error occurred during redirect.",
+        });
+      });
+  }, [auth, db, router, selectedRole, toast]);
+
 
   const handleAuthAction = async () => {
     if (!db || !auth) {
@@ -73,17 +123,17 @@ export default function LoginPage() {
             const displayName = extractNameFromEmail(email);
             router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
         } catch (error: any) {
-            // Handle admin sign-in errors, e.g., user not found in Firebase Auth
             if (error.code === 'auth/user-not-found') {
                  try {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                     const displayName = extractNameFromEmail(email);
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email: email, role: 'Admin', status: 'Approved' });
+                    const displayName = extractNameFromEmail(email);
                     router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
-                } catch(e) {
+                } catch(e: any) {
                      toast({
                         variant: "destructive",
-                        title: "Admin Sign In Failed",
-                        description: "Could not create admin user.",
+                        title: "Admin Sign Up Failed",
+                        description: e.message || "Could not create admin user.",
                     });
                 }
             } else {
@@ -128,7 +178,6 @@ export default function LoginPage() {
             router.push('/pending-approval');
           }
         } else {
-            // This case should ideally not happen if sign up creates the user doc
             throw new Error("User data not found in database.");
         }
       } catch (error: any) {
@@ -144,52 +193,14 @@ export default function LoginPage() {
     }
     
     const provider = new GoogleAuthProvider();
-
-    signInWithPopup(auth, provider)
-      .then(async (result) => {
-        const googleUser = result.user;
-        if (!googleUser.email) {
-            throw new Error("Could not retrieve email from Google Sign-In.");
-        }
-
-        const existingUser = await findUserByEmail(db, googleUser.email);
-
-        if (existingUser) {
-            if (existingUser.status === 'Approved') {
-                router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
-            } else {
-                router.push('/pending-approval');
-            }
-        } else {
-            const newUser = {
-                id: googleUser.uid,
-                name: googleUser.displayName || extractNameFromEmail(googleUser.email),
-                email: googleUser.email,
-                role: selectedRole,
-                status: 'Pending' as 'Pending' | 'Approved',
-            };
-            await addUser(db, newUser);
-            router.push('/pending-approval');
-        }
-      })
-      .catch((error: any) => {
-        if (error.code === 'auth/popup-blocked') {
-          toast({
-              variant: "destructive",
-              title: "Popup Blocked",
-              description: "Your browser blocked the sign-in popup. Please allow popups for this site and try again.",
-          });
-        } else {
-          toast({
-              variant: "destructive",
-              title: "Google Sign-In Failed",
-              description: error.message || "An unexpected error occurred.",
-          });
-        }
-      });
+    signInWithRedirect(auth, provider);
   };
   
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
+
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
