@@ -71,16 +71,13 @@ export default function LoginPage() {
       router.push('/pending-approval');
     } else {
       // Handle Sign In for Manager/Executive
-      if (password === "123456") {
-        const displayName = extractNameFromEmail(email);
-        router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Sign In Failed",
-          description: "The password you entered is incorrect. Please try again.",
-        });
-      }
+      // This is a placeholder for actual authentication.
+      // For now, we'll just show an error and prompt them to sign up.
+      toast({
+        variant: "destructive",
+        title: "Sign In Failed",
+        description: "Invalid credentials. Please sign up if you don't have an account.",
+      });
     }
   };
   
