@@ -172,7 +172,7 @@ export default function LoginPage() {
                 id: googleUser.uid,
                 name: googleUser.displayName || extractNameFromEmail(googleUser.email!),
                 email: googleUser.email!,
-                role: 'Manager', // Default role
+                role: 'Manager' as UserRole, // Default role
                 status: 'Pending' as const,
             };
             await addUser(db, newUser);
@@ -271,16 +271,6 @@ export default function LoginPage() {
         </CardContent>
         {isManagerOrExecutive && (
            <CardFooter className="flex-col gap-4">
-              <div className="relative w-full">
-                  <Separator />
-                  <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
-                  OR
-                  </span>
-              </div>
-              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
-                  {isLoading ? <Loader2 className="animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
-                  Sign in with Google
-              </Button>
                <div className="text-sm">
                 <button
                   onClick={() => setIsSigningUp(!isSigningUp)}
@@ -297,5 +287,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
