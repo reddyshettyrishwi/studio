@@ -51,7 +51,7 @@ export const addUser = async (db: Firestore, user: Omit<User, 'password'>) => {
         return;
     }
 
-    const newUser: Omit<User, 'id' | 'password'> = {
+    const newUser = {
         name: user.name,
         email: user.email,
         role: user.role,

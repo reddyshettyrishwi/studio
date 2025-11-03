@@ -24,8 +24,6 @@ service cloud.firestore {
         let data = request.resource.data;
         return data.name is string &&
                data.email is string &&
-               data.role is string && (data.role == 'Manager' || data.role == 'Executive' || data.role == 'Admin') &&
-               data.status is string && (data.status == 'Pending' || data.status == 'Approved') &&
                data.keys().hasAll(['name', 'email', 'role', 'status']);
       }
       
