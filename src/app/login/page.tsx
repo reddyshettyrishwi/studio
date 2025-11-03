@@ -52,8 +52,22 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
 
   const handleAuthAction = () => {
+    if (selectedRole === 'Admin') {
+      if (email === 'admin@nxtwave.co.in' && password === '12345678') {
+        const displayName = extractNameFromEmail(email);
+        router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Admin Sign Up Failed",
+          description: "Invalid credentials for Admin registration.",
+        });
+      }
+      return;
+    }
+
     if (isSigningUp) {
-      // Handle Sign Up
+      // Handle Sign Up for Manager/Executive
       toast({
         title: "Registration Successful!",
         description: `Welcome, ${name}! You can now sign in.`,
@@ -64,7 +78,7 @@ export default function LoginPage() {
       setEmail("");
       setPassword("");
     } else {
-      // Handle Sign In
+      // Handle Sign In for Manager/Executive
       if (password === "123456") {
         const displayName = extractNameFromEmail(email);
         router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
@@ -77,6 +91,8 @@ export default function LoginPage() {
       }
     }
   };
+  
+  const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -91,16 +107,16 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">
-            {isSigningUp ? "Create Account" : "Sign In"}
+            {selectedRole === 'Admin' ? 'Admin Sign Up' : (isSigningUp ? "Create Account" : "Sign In")}
           </CardTitle>
           <CardDescription>
-            {isSigningUp
+            {selectedRole === 'Admin' ? 'Enter admin credentials to create the account.' : (isSigningUp
               ? "Enter your details to create a new account."
-              : "Enter your credentials to access the dashboard."}
+              : "Enter your credentials to access the dashboard.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {isSigningUp && (
+          {isSigningUp && isManagerOrExecutive && (
             <div className="grid gap-2">
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} />
@@ -151,31 +167,33 @@ export default function LoginPage() {
             </RadioGroup>
           </div>
           <Button onClick={handleAuthAction} className="w-full">
-            {isSigningUp ? "Sign Up" : "Sign In"}
+            {selectedRole === 'Admin' ? 'Sign Up' : (isSigningUp ? "Sign Up" : "Sign In")}
           </Button>
         </CardContent>
-        <CardFooter className="flex-col gap-4">
-           <div className="text-sm">
-            <button
-              onClick={() => setIsSigningUp(!isSigningUp)}
-              className="font-medium text-primary hover:underline"
-            >
-              {isSigningUp
-                ? "Already have an account? Sign In"
-                : "Don't have an account? Sign Up"}
-            </button>
-          </div>
-          <div className="relative w-full">
-            <Separator />
-            <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
-              OR
-            </span>
-          </div>
-          <Button variant="outline" className="w-full">
-            <Chrome className="mr-2 h-4 w-4" />
-            Sign in with Google
-          </Button>
-        </CardFooter>
+        {isManagerOrExecutive && (
+           <CardFooter className="flex-col gap-4">
+              <div className="text-sm">
+                <button
+                  onClick={() => setIsSigningUp(!isSigningUp)}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {isSigningUp
+                    ? "Already have an account? Sign In"
+                    : "Don't have an account? Sign Up"}
+                </button>
+              </div>
+              <div className="relative w-full">
+                <Separator />
+                <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
+                  OR
+                </span>
+              </div>
+              <Button variant="outline" className="w-full">
+                <Chrome className="mr-2 h-4 w-4" />
+                Sign in with Google
+              </Button>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
