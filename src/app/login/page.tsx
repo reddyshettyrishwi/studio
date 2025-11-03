@@ -20,9 +20,9 @@ import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addUser, findUserByCredentials } from "@/lib/data";
+import { addUser, findUserByCredentials, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -57,19 +57,43 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
 
   const handleAuthAction = async () => {
-    if (!db) {
-        toast({
-            variant: "destructive",
-            title: "Database Error",
-            description: "Could not connect to the database. Please try again later.",
-        });
-        return;
+    if (!db || !auth) {
+      toast({
+        variant: "destructive",
+        title: "Initialization Error",
+        description: "Firebase is not ready. Please try again in a moment.",
+      });
+      return;
     }
 
     if (selectedRole === 'Admin') {
       if (email === 'admin@nxtwave.co.in' && password === '12345678') {
-        const displayName = extractNameFromEmail(email);
-        router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            const displayName = extractNameFromEmail(email);
+            router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
+        } catch (error: any) {
+            // Handle admin sign-in errors, e.g., user not found in Firebase Auth
+            if (error.code === 'auth/user-not-found') {
+                 try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                     const displayName = extractNameFromEmail(email);
+                    router.push(`/dashboard?role=${selectedRole}&name=${encodeURIComponent(displayName)}`);
+                } catch(e) {
+                     toast({
+                        variant: "destructive",
+                        title: "Admin Sign In Failed",
+                        description: "Could not create admin user.",
+                    });
+                }
+            } else {
+                 toast({
+                    variant: "destructive",
+                    title: "Admin Sign In Failed",
+                    description: error.message || "An unexpected error occurred.",
+                });
+            }
+        }
       } else {
         toast({
           variant: "destructive",
@@ -82,51 +106,40 @@ export default function LoginPage() {
 
     if (isSigningUp) {
       if (!name || !email || !password) {
-        toast({
-          variant: "destructive",
-          title: "Sign Up Failed",
-          description: "Please fill in all fields.",
-        });
+        toast({ variant: "destructive", title: "Sign Up Failed", description: "Please fill in all fields." });
         return;
       }
       try {
-        await addUser(db, { name, email, password, role: selectedRole, status: 'Pending' });
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
+        await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
         router.push('/pending-approval');
       } catch (error: any) {
-         toast({
-            variant: "destructive",
-            title: "Sign Up Failed",
-            description: error.message || "An error occurred during sign up.",
-        });
+         toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "An error occurred during sign up." });
       }
-    } else {
-      // Handle Sign In for Manager/Executive
-      const user = await findUserByCredentials(db, email, password);
-      
-      if(user) {
-        if (user.status === 'Approved') {
-            const displayName = user.name;
-            router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(displayName)}`);
-        } else {
+    } else { // Sign In
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = await findUserByEmail(db, userCredential.user.email!);
+        if (user) {
+          if (user.status === 'Approved') {
+            router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
+          } else {
             router.push('/pending-approval');
+          }
+        } else {
+            // This case should ideally not happen if sign up creates the user doc
+            throw new Error("User data not found in database.");
         }
-      } else {
-         toast({
-            variant: "destructive",
-            title: "Sign In Failed",
-            description: "Invalid credentials. Please sign up if you don't have an account.",
-        });
+      } catch (error: any) {
+         toast({ variant: "destructive", title: "Sign In Failed", description: error.message || "Invalid credentials." });
       }
     }
   };
 
   const handleGoogleSignIn = async () => {
     if (!db || !auth) {
-        toast({
-            variant: "destructive",
-            title: "Initialization Error",
-            description: "Firebase is not ready. Please try again in a moment.",
-        });
+        toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready. Please try again in a moment." });
         return;
     }
 
@@ -139,7 +152,7 @@ export default function LoginPage() {
             throw new Error("Could not retrieve email from Google Sign-In.");
         }
 
-        const existingUser = await findUserByCredentials(db, googleUser.email);
+        const existingUser = await findUserByEmail(db, googleUser.email);
 
         if (existingUser) {
             if (existingUser.status === 'Approved') {
@@ -150,6 +163,7 @@ export default function LoginPage() {
         } else {
             // New user, sign them up
             const newUser = {
+                id: googleUser.uid,
                 name: googleUser.displayName || extractNameFromEmail(googleUser.email),
                 email: googleUser.email,
                 role: selectedRole, // Defaults to Manager or what's selected
@@ -159,11 +173,7 @@ export default function LoginPage() {
             router.push('/pending-approval');
         }
     } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Google Sign-In Failed",
-            description: error.message || "An unexpected error occurred.",
-        });
+        toast({ variant: "destructive", title: "Google Sign-In Failed", description: error.message || "An unexpected error occurred." });
     }
   };
   
@@ -197,18 +207,16 @@ export default function LoginPage() {
               <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
           )}
-          {!(isSigningUp && !isManagerOrExecutive) && (
-            <>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              </div>
-            </>
-          )}
+          
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </div>
+
 
           <div className="grid gap-2">
             <Label>Select Role</Label>
@@ -253,20 +261,16 @@ export default function LoginPage() {
         </CardContent>
         {isManagerOrExecutive && (
            <CardFooter className="flex-col gap-4">
-              {!isSigningUp && (
-                <>
-                <div className="relative w-full">
-                    <Separator />
-                    <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
-                    OR
-                    </span>
-                </div>
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                    <Chrome className="mr-2 h-4 w-4" />
-                    Sign in with Google
-                </Button>
-                </>
-              )}
+              <div className="relative w-full">
+                  <Separator />
+                  <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
+                  OR
+                  </span>
+              </div>
+              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                  <Chrome className="mr-2 h-4 w-4" />
+                  Sign in with Google
+              </Button>
                <div className="text-sm">
                 <button
                   onClick={() => setIsSigningUp(!isSigningUp)}

@@ -42,46 +42,60 @@ export const getCampaigns = async (db: Firestore): Promise<Campaign[]> => {
 // User Management Functions
 // =================================================================
 
-export const addUser = async (db: Firestore, user: Omit<User, 'id'>) => {
-  const usersCol = collection(db, 'users');
+export const addUser = async (db: Firestore, user: User) => {
+  const userRef = doc(db, 'users', user.id);
   
   // Check if user already exists
-  const q = query(usersCol, where("email", "==", user.email));
-  const querySnapshot = await getDocs(q);
-  if (!querySnapshot.empty) {
-    throw new Error("An account with this email already exists.");
+  const docSnap = await getDoc(userRef);
+  if (docSnap.exists()) {
+    // In a real app, you might merge data, but here we just prevent overwriting to be safe.
+    // Or, if sign-up is the only entry point for new users, this might indicate an error.
+    console.warn("User document already exists, not overwriting.");
+    return;
   }
 
-  const newUserRef = doc(collection(db, "users"));
-  
-  const newUser: User = {
-    id: newUserRef.id,
+  const newUser: Omit<User, 'id'> = {
     name: user.name,
     email: user.email,
-    password: user.password, // In a real app, this should be hashed.
     role: user.role,
-    status: user.role === 'Admin' ? 'Approved' : 'Pending',
+    status: user.role === 'Admin' ? 'Approved' : user.status,
   };
+   if (user.password) {
+    // In a real app, never store passwords directly. This is for demonstration.
+    newUser.password = user.password; 
+  }
 
-  await setDoc(newUserRef, newUser);
-  return newUser;
+
+  await setDoc(userRef, newUser);
+  return { id: user.id, ...newUser } as User;
 };
 
+export const findUserByEmail = async (db: Firestore, email: string): Promise<User | undefined> => {
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, where("email", "==", email));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return undefined;
+    }
+    const userDoc = snapshot.docs[0];
+    return { id: userDoc.id, ...userDoc.data() } as User;
+};
+
+
 export const findUserByCredentials = async (db: Firestore, email: string, password?: string): Promise<User | undefined> => {
-  const usersCol = collection(db, 'users');
-  const q = query(usersCol, where("email", "==", email));
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) {
-    return undefined;
-  }
-  
-  const user = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as User;
+  const user = await findUserByEmail(db, email);
+  if (!user) return undefined;
 
-  if (password && user.password !== password) {
-      return undefined;
+  // This is an insecure password check. In a real app, use Firebase Auth.
+  if (password && user.password && user.password === password) {
+    return user;
+  }
+  // If no password is provided (e.g., Google Sign-In), just return the user found by email.
+  if (!password) {
+      return user;
   }
 
-  return user;
+  return undefined;
 };
 
 
@@ -115,7 +129,7 @@ export const rejectUser = async (db: Firestore, userId: string) => {
 };
 
 export const isUserApproved = async (db: Firestore, email: string): Promise<boolean> => {
-    const user = await findUserByCredentials(db, email);
+    const user = await findUserByEmail(db, email);
     return user?.status === 'Approved';
 };
 
