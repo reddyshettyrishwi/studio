@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Megaphone, Chrome } from "lucide-react";
+import { Megaphone, Chrome, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult } from "firebase/auth";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -55,7 +55,66 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+
+  React.useEffect(() => {
+    if (!auth || !db) return;
+
+    // This handles the redirect result from Google Sign-In
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          const googleUser = result.user;
+          const existingUser = await findUserByEmail(db, googleUser.email!);
+
+          if (existingUser) {
+            if (existingUser.status === 'Approved') {
+              router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
+            } else {
+              router.push('/pending-approval');
+            }
+          } else {
+            // User doesn't exist, create a new document
+            const newUser = {
+                id: googleUser.uid,
+                name: googleUser.displayName || extractNameFromEmail(googleUser.email!),
+                email: googleUser.email!,
+                role: selectedRole, // Role selected on the UI before redirect
+                status: 'Pending' as const,
+            };
+            await addUser(db, newUser);
+            router.push('/pending-approval');
+          }
+        } else {
+          // No redirect result, user might be already logged in or just visiting
+          if (auth.currentUser) {
+            // User is already signed in, check their status and redirect
+            const user = await findUserByEmail(db, auth.currentUser.email!);
+            if (user && user.status === 'Approved') {
+                 router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
+            } else {
+                // If user is not approved or not found in DB, they can stay on login page to try again
+                setIsLoading(false);
+            }
+          } else {
+             setIsLoading(false);
+          }
+        }
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Sign-In Failed",
+          description: error.message || "Could not process sign-in result.",
+        });
+        setIsLoading(false);
+      }
+    };
+
+    handleRedirect();
+
+  }, [auth, db, router, toast, selectedRole]);
 
 
   const handleAuthAction = async () => {
@@ -67,6 +126,8 @@ export default function LoginPage() {
       });
       return;
     }
+
+    setIsLoading(true);
 
     if (selectedRole === 'Admin') {
       if (email === 'admin@nxtwave.co.in' && password === '12345678') {
@@ -95,6 +156,8 @@ export default function LoginPage() {
                     description: error.message || "An unexpected error occurred.",
                 });
             }
+        } finally {
+            setIsLoading(false);
         }
       } else {
         toast({
@@ -102,6 +165,7 @@ export default function LoginPage() {
           title: "Admin Sign In Failed",
           description: "Invalid credentials for Admin sign in.",
         });
+        setIsLoading(false);
       }
       return;
     }
@@ -109,6 +173,7 @@ export default function LoginPage() {
     if (isSigningUp) {
       if (!name || !email || !password) {
         toast({ variant: "destructive", title: "Sign Up Failed", description: "Please fill in all fields." });
+        setIsLoading(false);
         return;
       }
       try {
@@ -118,6 +183,7 @@ export default function LoginPage() {
         router.push('/pending-approval');
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "An error occurred during sign up." });
+         setIsLoading(false);
       }
     } else { // Sign In
       try {
@@ -134,66 +200,31 @@ export default function LoginPage() {
         }
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: error.message || "Invalid credentials." });
+         setIsLoading(false);
       }
     }
   };
 
   const handleGoogleSignIn = async () => {
-    if (!db || !auth) {
-        toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready. Please try again in a moment." });
-        return;
-    }
-
-    if (selectedRole === 'Admin') {
-        toast({
-            variant: "destructive",
-            title: "Sign In Method Not Supported",
-            description: "Admin accounts cannot use Google Sign-In. Please use email and password.",
-        });
+    if (!auth) {
+        toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
         return;
     }
     
+    setIsLoading(true);
     const provider = new GoogleAuthProvider();
-    
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const googleUser = result.user;
-
-      if (!googleUser.email) {
-          throw new Error("Could not retrieve email from Google Sign-In.");
-      }
-      
-      const existingUser = await findUserByEmail(db, googleUser.email);
-      
-      if (existingUser) {
-          if (existingUser.status === 'Approved') {
-              router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
-          } else {
-              router.push('/pending-approval');
-          }
-      } else {
-          // User doesn't exist, so create a new document
-          const newUser = {
-              id: googleUser.uid,
-              name: googleUser.displayName || extractNameFromEmail(googleUser.email),
-              email: googleUser.email,
-              role: selectedRole, // Role selected on the UI
-              status: 'Pending' as 'Pending' | 'Approved',
-          };
-          await addUser(db, newUser);
-          router.push('/pending-approval');
-      }
-
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Google Sign-In Failed",
-            description: error.message || "An unexpected error occurred.",
-        });
-    }
+    await signInWithRedirect(auth, provider);
   };
   
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
+
+  if (isLoading) {
+    return (
+        <div className="flex min-h-screen items-center justify-center">
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -271,8 +302,8 @@ export default function LoginPage() {
               </div>
             </RadioGroup>
           </div>
-          <Button onClick={handleAuthAction} className="w-full">
-            {selectedRole === 'Admin' ? 'Sign In' : (isSigningUp ? "Sign Up" : "Sign In")}
+          <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
+            {isLoading ? <Loader2 className="animate-spin" /> : (selectedRole === 'Admin' ? 'Sign In' : (isSigningUp ? "Sign Up" : "Sign In"))}
           </Button>
         </CardContent>
         {isManagerOrExecutive && (
@@ -283,8 +314,8 @@ export default function LoginPage() {
                   OR
                   </span>
               </div>
-              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
-                  <Chrome className="mr-2 h-4 w-4" />
+              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+                  {isLoading ? <Loader2 className="animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
                   Sign in with Google
               </Button>
                <div className="text-sm">
@@ -303,5 +334,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
