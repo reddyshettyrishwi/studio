@@ -106,11 +106,7 @@ export default function LoginPage() {
             const displayName = user.name;
             router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(displayName)}`);
         } else {
-            toast({
-                variant: "destructive",
-                title: "Login Failed",
-                description: "Your account is still pending approval.",
-            });
+            router.push('/pending-approval');
         }
       } else {
          toast({
