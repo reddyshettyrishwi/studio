@@ -49,10 +49,14 @@ function AdminApprovalsContent() {
   const initialName = searchParams.get('name') || "Admin User";
 
   const { toast } = useToast();
-  const [pendingUsers, setPendingUsers] = React.useState<PendingUser[]>(getPendingUsers());
+  const [pendingUsers, setPendingUsers] = React.useState<PendingUser[]>([]);
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
   const [userName, setUserName] = React.useState<string>(initialName);
   
+  React.useEffect(() => {
+    setPendingUsers(getPendingUsers());
+  }, []);
+
   if (userRole !== 'Admin') {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center">
