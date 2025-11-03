@@ -68,7 +68,7 @@ const influencerSchema = z.object({
   lastPromotionDate: z.date({
     required_error: "A date of promotion is required.",
   }),
-  lastPricePaid: z.coerce.number().positive("Price must be a positive number."),
+  lastPricePaid: z.coerce.number().positive("Price must be a positive number.").optional(),
 });
 
 type AddInfluencerFormValues = z.infer<typeof influencerSchema>;
@@ -98,7 +98,6 @@ export default function AddInfluencerDialog({
       category: "",
       language: "",
       lastPromotionBy: "",
-      lastPricePaid: 0,
       platform1: {
         platform: "Instagram",
         channelName: "",
@@ -395,7 +394,7 @@ export default function AddInfluencerDialog({
               />
               <FormField name="lastPricePaid" control={control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Price Paid (₹)</FormLabel>
+                    <FormLabel>Last Price Paid (₹) (Optional)</FormLabel>
                     <FormControl><Input type="number" placeholder="400000" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>

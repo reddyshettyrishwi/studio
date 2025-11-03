@@ -343,7 +343,7 @@ function InfluencersContent() {
                               ))}
                             </div>
                             <div className="space-y-2 text-sm">
-                              <p><strong className="font-bold">Last Price Paid:</strong> ₹{influencer.lastPricePaid.toLocaleString('en-IN')}</p>
+                              <p><strong className="font-bold">Last Price Paid:</strong> {influencer.lastPricePaid ? `₹${influencer.lastPricePaid.toLocaleString('en-IN')}` : 'N/A'}</p>
                               <div className="flex items-center">
                                 <strong className="font-bold mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
                                 {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
@@ -395,7 +395,7 @@ function InfluencersContent() {
                                         </div>
                                     </TableCell>
                                     <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>
-                                    <TableCell>₹{influencer.lastPricePaid.toLocaleString('en-IN')}</TableCell>
+                                    <TableCell>{influencer.lastPricePaid ? `₹${influencer.lastPricePaid.toLocaleString('en-IN')}` : 'N/A'}</TableCell>
                                     <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>
                                     <TableCell>
                                       <div className="flex items-center">

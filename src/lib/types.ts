@@ -13,7 +13,7 @@ export type PlatformDetails = {
 
 export type Influencer = {
   id: string;
-  name: string;
+  name:string;
   platforms: PlatformDetails[];
   category: string;
   language: string;
@@ -26,7 +26,7 @@ export type Influencer = {
   };
   lastPromotionBy: string;
   lastPromotionDate: string;
-  lastPricePaid: number;
+  lastPricePaid?: number;
   avatar: string; // URL to image
 };
 
