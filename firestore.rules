@@ -40,9 +40,9 @@ service cloud.firestore {
       // Allow a user to read their own profile.
       allow get: if isOwner(userId);
 
-      // Admins can list users with a "Pending" status.
-      allow list: if isSignedIn() && query.get("status") == "Pending" && isAdmin();
-
+      // Admins can list users but ONLY if the query is for "Pending" status.
+      // This is a critical rule for the approvals page to work.
+      allow list: if isAdmin() && request.query.get("status") == "Pending";
 
       // Allow a user to create their own user document if the data is valid.
       allow create: if isOwner(userId) && isNewUserDataValid();
