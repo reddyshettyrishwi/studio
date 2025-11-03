@@ -55,7 +55,7 @@ export const addUser = async (db: Firestore, user: Omit<User, 'password'>) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        status: user.role === 'Admin' ? 'Approved' : user.status,
+        status: user.status || 'Pending',
     };
 
     await setDoc(userRef, newUser);
