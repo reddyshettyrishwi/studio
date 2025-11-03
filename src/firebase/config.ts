@@ -1,14 +1,8 @@
-// This file is intentionally left blank. 
-// It will be populated with your Firebase project's configuration 
-// when you connect to a Firebase project.
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCd77YV9WyWLxefiniTvQ65UzsdtS9-EOg",
-  authDomain: "cimshub.firebaseapp.com",
-  projectId: "cimshub",
-  storageBucket: "cimshub.appspot.com",
-  messagingSenderId: "936039246035",
-  appId: "1:936039246035:web:1b1ce7d219fe2036970c26"
+export const firebaseConfig = {
+  "projectId": "cimshubnew-01644600-2a9a0",
+  "appId": "1:374011026139:web:a6e41d54430cfcb18ecafe",
+  "apiKey": "AIzaSyBb1uYBwCr-vxh0fGzoCYmZ6gamMgmMRFI",
+  "authDomain": "cimshubnew-01644600-2a9a0.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "374011026139"
 };
-
-export default firebaseConfig;

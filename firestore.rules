@@ -1,0 +1,121 @@
+/**
+ * @fileoverview Firestore Security Rules for InfluenceWise.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a user-ownership model for user profiles and allows controlled
+ * access to agencies, influencers, and campaigns based on association and denormalized data.
+ * Access control is managed through path-based ownership for users and association with agencies and influencers for other entities.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles, accessible only by the authenticated user.
+ * - /agencies/{agencyId}: Stores agency profiles, access managed through role-based permissions.
+ * - /influencers/{influencerId}: Stores influencer profiles, access controlled by association with an agency (agencyId).
+ * - /campaigns/{campaignId}: Stores campaign data, access based on association with influencers (influencerIds).
+ *
+ * Key Security Decisions:
+ * - User profiles are strictly private to the owning user.
+ * - Listing of user profiles is disallowed.
+ * - Access to influencers and campaigns is based on association with agencies and influencers, respectively.
+ * - Data denormalization (agencyId in influencers, influencerIds in campaigns) is used to simplify security rules and avoid costly `get()` calls.
+ *
+ * Denormalization for Authorization:
+ * - The `influencers` documents have a denormalized `agencyId` field. This allows rules to check if the logged-in user has access to a specific agency.
+ * - The `campaigns` documents have a denormalized `influencerIds` array. This allows rules to check if the logged-in user has access to the relevant influencers without retrieving related campaign details.
+ *
+ * Structural Segregation:
+ * - This ruleset currently does not need data to be both private and public.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows only the authenticated user to read and write their own profile.
+     * @path /users/{userId}
+     * @allow (create) request.auth.uid == 'user_abc' with data { id: 'user_abc', fullName: 'Test User', email: 'test@example.com' }
+     * @allow (get, update, delete) request.auth.uid == 'user_abc'
+     * @deny (create) request.auth.uid != 'user_abc'
+     * @deny (get, update, delete) request.auth.uid != 'user_abc'
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows admins to manage agencies.
+     * @path /agencies/{agencyId}
+     * @allow (create) request.auth.uid == 'admin_user'
+     * @allow (get, list) true
+     * @deny (update, delete) request.auth.uid != 'admin_user'
+     * @principle Restricts agency management to authorized users.
+     */
+    match /agencies/{agencyId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      // TODO: Replace with a proper role-based check once roles are defined.
+      function isAdmin() {
+        return isSignedIn(); // Placeholder:  Replace with your actual admin check.
+      }
+
+      allow get, list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Controls access to influencer profiles based on agency association.
+     * @path /influencers/{influencerId}
+     * @allow (get, list) true
+     * @allow (create) request.resource.data.agencyId != null  // Example: Allow creation if associated with an agency.
+     * @deny (update, delete) false // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Manages access based on agency association.
+     */
+    match /influencers/{influencerId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get, list: if true; // Allow public read access.
+
+      // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+
+    /**
+     * @description Manages access to campaigns.
+     * @path /campaigns/{campaignId}
+     * @allow (get, list) true
+     * @deny (create, update, delete) false // TODO: Add owner validation once the schema is updated with an ownership field.
+     * @principle Controls access to campaigns.
+     */
+    match /campaigns/{campaignId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get, list: if true;
+
+      allow create, update, delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+    }
+  }
+}
