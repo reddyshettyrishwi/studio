@@ -54,9 +54,10 @@ export const addUser = async (db: Firestore, user: User) => {
     return;
   }
 
-  const newUser: Omit<User, 'id' | 'password'> = {
+  const newUser: Omit<User, 'id'> = {
     name: user.name,
     email: user.email,
+    password: user.password,
     role: user.role,
     status: user.role === 'Admin' ? 'Approved' : user.status,
   };
