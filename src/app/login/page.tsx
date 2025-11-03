@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -55,55 +55,7 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    if (!auth) {
-        setIsLoading(false);
-        return;
-    };
-    
-    getRedirectResult(auth)
-      .then(async (result) => {
-        setIsLoading(false);
-        if (!result) {
-          return;
-        }
-
-        const googleUser = result.user;
-        if (!googleUser.email) {
-          throw new Error("Could not retrieve email from Google Sign-In.");
-        }
-
-        const existingUser = await findUserByEmail(db, googleUser.email);
-
-        if (existingUser) {
-          if (existingUser.status === 'Approved') {
-            router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
-          } else {
-            router.push('/pending-approval');
-          }
-        } else {
-          const newUser = {
-            id: googleUser.uid,
-            name: googleUser.displayName || extractNameFromEmail(googleUser.email),
-            email: googleUser.email,
-            role: selectedRole,
-            status: 'Pending' as 'Pending' | 'Approved',
-          };
-          await addUser(db, newUser);
-          router.push('/pending-approval');
-        }
-      })
-      .catch((error) => {
-        setIsLoading(false);
-        toast({
-          variant: "destructive",
-          title: "Google Sign-In Failed",
-          description: error.message || "An unexpected error occurred during redirect.",
-        });
-      });
-  }, [auth, db, router, selectedRole, toast]);
+  const [isLoading, setIsLoading] = React.useState(false);
 
 
   const handleAuthAction = async () => {
@@ -186,21 +138,62 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     if (!db || !auth) {
         toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready. Please try again in a moment." });
         return;
     }
+
+    if (selectedRole === 'Admin') {
+        toast({
+            variant: "destructive",
+            title: "Sign In Method Not Supported",
+            description: "Admin accounts cannot use Google Sign-In. Please use email and password.",
+        });
+        return;
+    }
     
     const provider = new GoogleAuthProvider();
-    signInWithRedirect(auth, provider);
+    
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const googleUser = result.user;
+
+      if (!googleUser.email) {
+          throw new Error("Could not retrieve email from Google Sign-In.");
+      }
+      
+      const existingUser = await findUserByEmail(db, googleUser.email);
+      
+      if (existingUser) {
+          if (existingUser.status === 'Approved') {
+              router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
+          } else {
+              router.push('/pending-approval');
+          }
+      } else {
+          // User doesn't exist, so create a new document
+          const newUser = {
+              id: googleUser.uid,
+              name: googleUser.displayName || extractNameFromEmail(googleUser.email),
+              email: googleUser.email,
+              role: selectedRole, // Role selected on the UI
+              status: 'Pending' as 'Pending' | 'Approved',
+          };
+          await addUser(db, newUser);
+          router.push('/pending-approval');
+      }
+
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: error.message || "An unexpected error occurred.",
+        });
+    }
   };
   
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
-
-  if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
