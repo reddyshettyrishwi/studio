@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addUser, findUserByCredentials, findUserByEmail } from "@/lib/data";
+import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
 import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
@@ -137,17 +137,17 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     if (!db || !auth) {
         toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready. Please try again in a moment." });
         return;
     }
-
+    
     const provider = new GoogleAuthProvider();
-    try {
-        const result = await signInWithPopup(auth, provider);
+
+    signInWithPopup(auth, provider)
+      .then(async (result) => {
         const googleUser = result.user;
-        
         if (!googleUser.email) {
             throw new Error("Could not retrieve email from Google Sign-In.");
         }
@@ -161,20 +161,32 @@ export default function LoginPage() {
                 router.push('/pending-approval');
             }
         } else {
-            // New user, sign them up
             const newUser = {
                 id: googleUser.uid,
                 name: googleUser.displayName || extractNameFromEmail(googleUser.email),
                 email: googleUser.email,
-                role: selectedRole, // Defaults to Manager or what's selected
+                role: selectedRole,
                 status: 'Pending' as 'Pending' | 'Approved',
             };
             await addUser(db, newUser);
             router.push('/pending-approval');
         }
-    } catch (error: any) {
-        toast({ variant: "destructive", title: "Google Sign-In Failed", description: error.message || "An unexpected error occurred." });
-    }
+      })
+      .catch((error: any) => {
+        if (error.code === 'auth/popup-blocked') {
+          toast({
+              variant: "destructive",
+              title: "Popup Blocked",
+              description: "Your browser blocked the sign-in popup. Please allow popups for this site and try again.",
+          });
+        } else {
+          toast({
+              variant: "destructive",
+              title: "Google Sign-In Failed",
+              description: error.message || "An unexpected error occurred.",
+          });
+        }
+      });
   };
   
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
@@ -287,3 +299,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
