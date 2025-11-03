@@ -183,7 +183,7 @@ function CampaignsContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers

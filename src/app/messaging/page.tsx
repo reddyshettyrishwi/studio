@@ -75,7 +75,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -105,8 +105,7 @@ function MessagingContent() {
                     <CheckCircle />
                     Approvals
                   </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
+                </Link>              </SidebarMenuItem>
             )}
           </SidebarMenu>
         </SidebarContent>
