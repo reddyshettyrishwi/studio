@@ -109,8 +109,8 @@ export default function LoginPage() {
       } catch (error: any) {
         toast({
           variant: "destructive",
-          title: "Sign-In Failed",
-          description: error.message || "Could not process sign-in result.",
+          title: "Sign-In May Have Failed",
+          description: "If you are in a preview environment, please run the project locally and log in from localhost for the best experience.",
         });
         setIsLoading(false);
       }
@@ -339,4 +339,5 @@ export default function LoginPage() {
   );
 }
 
+    
     
