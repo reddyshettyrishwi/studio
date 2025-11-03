@@ -49,7 +49,7 @@ export default function LoginPage() {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [selectedRole, setSelectedRole] = React.useState<UserRole>("Level 2");
+  const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
 
   const handleAuthAction = () => {
     if (isSigningUp) {
@@ -117,35 +117,35 @@ export default function LoginPage() {
           <div className="grid gap-2">
             <Label>Select Role</Label>
             <RadioGroup
-              defaultValue="Level 2"
+              defaultValue="Manager"
               className="grid grid-cols-3 gap-4"
               onValueChange={(value: UserRole) => setSelectedRole(value)}
             >
               <div>
-                <RadioGroupItem value="Level 1" id="level1" className="peer sr-only" />
+                <RadioGroupItem value="Admin" id="admin" className="peer sr-only" />
                 <Label
-                  htmlFor="level1"
+                  htmlFor="admin"
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                  Level 1
+                  Admin
                 </Label>
               </div>
               <div>
-                <RadioGroupItem value="Level 2" id="level2" className="peer sr-only" />
+                <RadioGroupItem value="Manager" id="manager" className="peer sr-only" />
                 <Label
-                  htmlFor="level2"
+                  htmlFor="manager"
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                  Level 2
+                  Manager
                 </Label>
               </div>
               <div>
-                <RadioGroupItem value="Level 3" id="level3" className="peer sr-only" />
+                <RadioGroupItem value="Executive" id="executive" className="peer sr-only" />
                 <Label
-                  htmlFor="level3"
+                  htmlFor="executive"
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                 >
-                  Level 3
+                  Executive
                 </Label>
               </div>
             </RadioGroup>

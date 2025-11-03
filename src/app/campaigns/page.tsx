@@ -79,7 +79,7 @@ const StatusCircle = ({ status }: { status: ApprovalStatus }) => {
 
 function CampaignsContent() {
   const searchParams = useSearchParams();
-  const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
+  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
   const initialName = searchParams.get('name') || "Jane Doe";
 
 
@@ -249,7 +249,7 @@ function CampaignsContent() {
                         <TableCell>{format(new Date(campaign.date), 'dd MMM yyyy')}</TableCell>
                         <TableCell className="text-muted-foreground">{campaign.deliverables}</TableCell>
                         <TableCell>
-                           {userRole === 'Level 2' ? (
+                           {userRole === 'Manager' ? (
                             <Select
                               value={campaign.approvalStatus}
                               onValueChange={(newStatus: ApprovalStatus) => handleStatusChange(campaign.id, newStatus)}
@@ -314,5 +314,3 @@ export default function CampaignsPage() {
     </React.Suspense>
   );
 }
-
-    

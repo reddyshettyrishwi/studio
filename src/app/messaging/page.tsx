@@ -31,7 +31,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 function MessagingContent() {
   const searchParams = useSearchParams()
-  const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
+  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
   const initialName = searchParams.get('name') || "Jane Doe";
 
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
@@ -143,5 +143,3 @@ export default function MessagingPage() {
     </React.Suspense>
   );
 }
-
-    

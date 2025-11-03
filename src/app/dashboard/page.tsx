@@ -58,7 +58,7 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
 
 function DashboardContent() {
   const searchParams = useSearchParams()
-  const initialRole = (searchParams.get('role') as UserRole) || "Level 2";
+  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
   const initialName = searchParams.get('name') || "Jane Doe";
 
 
@@ -259,5 +259,3 @@ export default function DashboardPage() {
     </React.Suspense>
   );
 }
-
-    
