@@ -328,8 +328,6 @@ function InfluencersContent() {
                               {influencer.platforms.map(p => (
                                 <div key={p.platform}>
                                   <p className="font-bold flex items-center gap-2">{platformIcons[p.platform]} {p.channelName}</p>
-                                  <p><strong className="font-semibold">Link:</strong> <a href={p.channelLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{p.channelLink}</a></p>
-                                  <p><strong className="font-semibold">Avg. Views:</strong> {p.averageViews.toLocaleString()}</p>
                                 </div>
                               ))}
                             </div>
@@ -379,7 +377,7 @@ function InfluencersContent() {
                                                     {platformIcons[p.platform]}
                                                     <div>
                                                         <div className="font-medium">{p.channelName}</div>
-                                                        <a href={p.channelLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">@{p.handle} ({p.averageViews.toLocaleString()} avg views)</a>
+                                                        <span className="text-xs text-muted-foreground">@{p.handle}</span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -418,11 +416,9 @@ function InfluencersContent() {
 }
 
 export default function InfluencersPage() {
-  return (
-    <React.Suspense fallback={<div>Loading...</div>}>
-      <InfluencersContent />
-    </React.Suspense>
-  );
-}
-
-    
+    return (
+      <React.Suspense fallback={<div>Loading...</div>}>
+        <InfluencersContent />
+      </React.Suspense>
+    );
+  }

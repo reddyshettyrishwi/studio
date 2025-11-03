@@ -44,18 +44,14 @@ import { Calendar } from "./ui/calendar";
 const platformSchema = z.object({
   platform: z.enum(["YouTube", "Instagram"]),
   channelName: z.string().min(1, "Channel name is required."),
-  channelLink: z.string().url("Please enter a valid URL."),
   handle: z.string().min(1, "Username is required."),
-  averageViews: z.coerce.number().positive("Views must be a positive number."),
 });
 
 // Optional schema for the second platform
 const optionalPlatformSchema = z.object({
     platform: z.enum(["YouTube", "Instagram"]),
     channelName: z.string(),
-    channelLink: z.string(),
     handle: z.string(),
-    averageViews: z.coerce.number(),
 }).partial().optional();
 
 
@@ -106,16 +102,12 @@ export default function AddInfluencerDialog({
       platform1: {
         platform: "Instagram",
         channelName: "",
-        channelLink: "",
         handle: "",
-        averageViews: 0,
       },
       platform2: {
         platform: "YouTube",
         channelName: "",
-        channelLink: "",
         handle: "",
-        averageViews: 0,
       },
     },
   });
@@ -124,18 +116,17 @@ export default function AddInfluencerDialog({
 
   React.useEffect(() => {
     const subscription = watch((value, { name }) => {
-        if (name === 'mobile' || name === 'pan' || name === 'platform1.channelLink') {
-            const channelLink = value.platform1?.channelLink;
-            handleDuplicateCheck(value.mobile, value.pan, channelLink);
+        if (name === 'mobile' || name === 'pan') {
+            handleDuplicateCheck(value.mobile, value.pan);
         }
     });
     return () => subscription.unsubscribe();
   }, [watch]);
 
   const debounceTimeout = React.useRef<NodeJS.Timeout>();
-  const handleDuplicateCheck = (mobile?: string, pan?: string, channelLink?: string) => {
+  const handleDuplicateCheck = (mobile?: string, pan?: string) => {
     clearTimeout(debounceTimeout.current);
-    if (mobile && pan && channelLink) {
+    if (mobile && pan) {
         debounceTimeout.current = setTimeout(async () => {
             setIsDetecting(true);
             setDuplicateResult(null);
@@ -143,7 +134,6 @@ export default function AddInfluencerDialog({
                 const result = await detectDuplicateInfluencers({
                     mobileNumber: mobile,
                     legalName: pan, // Using PAN as legal name
-                    channelLink: channelLink,
                 });
                 if (result.isDuplicate) {
                     setDuplicateResult(result);
@@ -160,7 +150,7 @@ export default function AddInfluencerDialog({
 
   function onSubmit(data: AddInfluencerFormValues) {
     const platforms: PlatformDetails[] = [data.platform1 as PlatformDetails];
-    if (data.platform2 && data.platform2.channelLink && data.platform2.handle) {
+    if (data.platform2 && data.platform2.handle) {
       platforms.push(data.platform2 as PlatformDetails);
     }
 
@@ -240,12 +230,12 @@ export default function AddInfluencerDialog({
             <Separator />
             <div className="space-y-2">
                 <h4 className="font-medium">Platform 1 (Required)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <FormField
                         control={control}
                         name="platform1.platform"
                         render={({ field }) => (
-                        <FormItem className="md:col-span-1">
+                        <FormItem>
                             <FormLabel>Platform</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -264,7 +254,7 @@ export default function AddInfluencerDialog({
                         control={control}
                         name="platform1.channelName"
                         render={({ field }) => (
-                        <FormItem className="md:col-span-2">
+                        <FormItem>
                             <FormLabel>Channel Name</FormLabel>
                             <FormControl><Input placeholder="e.g., Jane's World" {...field} /></FormControl>
                             <FormMessage />
@@ -275,31 +265,9 @@ export default function AddInfluencerDialog({
                         control={control}
                         name="platform1.handle"
                         render={({ field }) => (
-                        <FormItem className="md:col-span-2">
+                        <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl><Input placeholder="@janedoe" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={control}
-                        name="platform1.channelLink"
-                        render={({ field }) => (
-                        <FormItem className="md:col-span-3">
-                            <FormLabel>Channel Link</FormLabel>
-                            <FormControl><Input placeholder="https://..." {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={control}
-                        name="platform1.averageViews"
-                        render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                            <FormLabel>Average Views</FormLabel>
-                            <FormControl><Input type="number" placeholder="150000" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -310,12 +278,12 @@ export default function AddInfluencerDialog({
             <Separator />
             <div className="space-y-2">
                 <h4 className="font-medium">Platform 2 (Optional)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                    <FormField
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                     <FormField
                         control={control}
                         name="platform2.platform"
                         render={({ field }) => (
-                        <FormItem className="md:col-span-1">
+                        <FormItem>
                             <FormLabel>Platform</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -334,7 +302,7 @@ export default function AddInfluencerDialog({
                         control={control}
                         name="platform2.channelName"
                         render={({ field }) => (
-                        <FormItem className="md:col-span-2">
+                        <FormItem>
                             <FormLabel>Channel Name</FormLabel>
                             <FormControl><Input placeholder="e.g., Jane's World" {...field} /></FormControl>
                             <FormMessage />
@@ -345,31 +313,9 @@ export default function AddInfluencerDialog({
                         control={control}
                         name="platform2.handle"
                         render={({ field }) => (
-                        <FormItem className="md:col-span-2">
+                        <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl><Input placeholder="@janedoe" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={control}
-                        name="platform2.channelLink"
-                        render={({ field }) => (
-                        <FormItem className="md:col-span-3">
-                            <FormLabel>Channel Link</FormLabel>
-                            <FormControl><Input placeholder="https://..." {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={control}
-                        name="platform2.averageViews"
-                        render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                            <FormLabel>Average Views</FormLabel>
-                            <FormControl><Input type="number" placeholder="150000" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}

@@ -1,7 +1,8 @@
+
 'use server';
 
 /**
- * @fileOverview Detects duplicate influencer profiles based on mobile number, legal name, and channel link similarity.
+ * @fileOverview Detects duplicate influencer profiles based on mobile number and legal name.
  *
  * - detectDuplicateInfluencers - A function that handles the duplicate detection process.
  * - DetectDuplicateInfluencersInput - The input type for the detectDuplicateInfluencers function.
@@ -16,7 +17,6 @@ const DetectDuplicateInfluencersInputSchema = z.object({
     .string()
     .describe('The mobile phone number of the influencer.'),
   legalName: z.string().describe('The legal name of the influencer.'),
-  channelLink: z.string().describe('The link to the influencer channel.'),
 });
 export type DetectDuplicateInfluencersInput = z.infer<
   typeof DetectDuplicateInfluencersInputSchema
@@ -57,10 +57,8 @@ const detectDuplicateInfluencersPrompt = ai.definePrompt({
 
   Mobile Number: {{{mobileNumber}}}
   Legal Name: {{{legalName}}}
-  Channel Link: {{{channelLink}}}
 
   Consider the mobile number and legal name as unique identifiers.  If they match an existing profile, it is highly likely to be a duplicate.
-  Also, analyze the channel link for similarity to existing profiles.  If the channel name or content is very similar, it could also indicate a duplicate.
 
   Return a confidence score (0-1) indicating the likelihood of a duplicate.
   If the profile is determined to be a duplicate, populate the potentialDuplicates field with an array of IDs of potential duplicate influencers found in the database.

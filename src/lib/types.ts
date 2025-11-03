@@ -8,9 +8,7 @@ export type ApprovalStatus = 'Approved' | 'Pending' | 'Rejected' | 'Completed';
 export type PlatformDetails = {
   platform: Platform;
   channelName: string;
-  channelLink: string;
   handle: string;
-  averageViews: number;
 };
 
 export type Influencer = {
@@ -39,7 +37,6 @@ export type Campaign = {
   deliverables: string;
   date: string;
   pricePaid: number;
-  averageViews: number;
   influencerId: string;
   approvalStatus: ApprovalStatus;
 };
