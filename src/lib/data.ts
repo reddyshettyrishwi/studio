@@ -54,17 +54,12 @@ export const addUser = async (db: Firestore, user: User) => {
     return;
   }
 
-  const newUser: Omit<User, 'id'> = {
+  const newUser: Omit<User, 'id' | 'password'> = {
     name: user.name,
     email: user.email,
     role: user.role,
     status: user.role === 'Admin' ? 'Approved' : user.status,
   };
-   if (user.password) {
-    // In a real app, never store passwords directly. This is for demonstration.
-    newUser.password = user.password; 
-  }
-
 
   await setDoc(userRef, newUser);
   return { id: user.id, ...newUser } as User;
