@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 // Function to extract a display name from an email address
 const extractNameFromEmail = (email: string): string => {
@@ -55,71 +55,9 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
-  const [isLoading, setIsLoading] = React.useState(true);
-
-
-  React.useEffect(() => {
-    if (!auth || !db) return;
-
-    // This handles the redirect result from Google Sign-In
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          setIsLoading(true);
-          const googleUser = result.user;
-          const existingUser = await findUserByEmail(db, googleUser.email!);
-
-          if (existingUser) {
-            if (existingUser.status === 'Approved') {
-              router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
-            } else {
-              router.push('/pending-approval');
-            }
-          } else {
-            // User doesn't exist, create a new document
-            const newUser = {
-                id: googleUser.uid,
-                name: googleUser.displayName || extractNameFromEmail(googleUser.email!),
-                email: googleUser.email!,
-                role: 'Manager', // Default role for new Google sign-ups
-                status: 'Pending' as const,
-            };
-            await addUser(db, newUser);
-            router.push('/pending-approval');
-          }
-        } else if (auth.currentUser) {
-          // User is already signed in, check their status and redirect
-          setIsLoading(true);
-          const user = await findUserByEmail(db, auth.currentUser.email!);
-          if (user && user.status === 'Approved') {
-            router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
-          } else {
-            // User exists but isn't approved, or DB entry is missing.
-            // Let them stay on the login page or send to pending.
-             if (user && user.status === 'Pending') {
-                 router.push('/pending-approval');
-             } else {
-                setIsLoading(false);
-             }
-          }
-        } else {
-           setIsLoading(false);
-        }
-      } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "Sign-In May Have Failed",
-          description: "If you are in a preview environment, please run the project locally and log in from localhost for the best experience.",
-        });
-        setIsLoading(false);
-      }
-    };
-
-    handleRedirect();
-
-  }, [auth, db, router, toast]);
-
+  const [isLoading, setIsLoading] = React.useState(false);
+  
+  const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
   const handleAuthAction = async () => {
     if (!db || !auth) {
@@ -210,25 +148,46 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth) {
+    if (!db || !auth) {
         toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
         return;
     }
     
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
-  };
-  
-  const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const googleUser = result.user;
+        const existingUser = await findUserByEmail(db, googleUser.email!);
 
-  if (isLoading) {
-    return (
-        <div className="flex min-h-screen items-center justify-center">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-    );
-  }
+        if (existingUser) {
+            if (existingUser.status === 'Approved') {
+                router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
+            } else {
+                router.push('/pending-approval');
+            }
+        } else {
+            // User doesn't exist, create a new document
+             const newUser = {
+                id: googleUser.uid,
+                name: googleUser.displayName || extractNameFromEmail(googleUser.email!),
+                email: googleUser.email!,
+                role: 'Manager', // Default role
+                status: 'Pending' as const,
+            };
+            await addUser(db, newUser);
+            router.push('/pending-approval');
+        }
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: error.message || "An unexpected error occurred.",
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -339,5 +298,4 @@ export default function LoginPage() {
   );
 }
 
-    
     
