@@ -59,7 +59,7 @@ service cloud.firestore {
      */
     match /agencies/{agencyId} {
       allow get, list: if isSignedIn();
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
@@ -67,9 +67,6 @@ service cloud.firestore {
      */
     match /influencers/{influencerId} {
       allow get, list: if isSignedIn();
-
-      // Allow any signed-in user to create, update, or delete influencers for now.
-      // In a real app, this would be restricted to 'Managers' or 'Admins'.
       allow create, update, delete: if isSignedIn();
     }
 
@@ -78,9 +75,6 @@ service cloud.firestore {
      */
     match /campaigns/{campaignId} {
       allow get, list: if isSignedIn();
-
-      // Allow any signed-in user to create, update, or delete campaigns for now.
-      // In a real app, this would be restricted to 'Managers'.
       allow create, update, delete: if isSignedIn();
     }
   }
