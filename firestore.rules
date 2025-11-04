@@ -51,7 +51,7 @@ service cloud.firestore {
       allow update: if isAdmin() && isStatusUpdateValid();
                        
       // Allow a user to delete their own account.
-      allow delete: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     /**
