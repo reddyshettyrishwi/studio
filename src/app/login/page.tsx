@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getRedirectResult } from "firebase/auth";
 
 
 export default function LoginPage() {
@@ -36,6 +36,52 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = React.useState(false);
   
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
+
+  React.useEffect(() => {
+    if (!auth) return;
+    
+    setIsLoading(true);
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result) {
+          const firebaseUser = result.user;
+          if (!firebaseUser.email) {
+            throw new Error("Google account does not have an email.");
+          }
+
+          const existingUser = await findUserByEmail(db, firebaseUser.email);
+          if (existingUser) {
+            if (existingUser.status === 'Approved') {
+              router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
+            } else {
+              await auth.signOut();
+              router.push('/pending-approval');
+            }
+          } else {
+            const newUser = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || 'New User',
+              email: firebaseUser.email,
+              role: selectedRole === 'Admin' ? 'Manager' : selectedRole,
+              status: 'Pending' as const
+            };
+            await addUser(db, newUser);
+            await auth.signOut();
+            router.push('/pending-approval');
+          }
+        }
+      })
+      .catch((error) => {
+        toast({
+          variant: "destructive",
+          title: "Google Sign In Failed",
+          description: error.message || "An unexpected error occurred during redirect.",
+        });
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [auth, db, router, toast, selectedRole]);
 
   const handleAdminSignIn = async () => {
     setIsLoading(true);
@@ -53,7 +99,6 @@ export default function LoginPage() {
       router.push(`/dashboard?role=Admin&name=Admin`);
     } catch (error: any) {
        if (error.code === 'auth/user-not-found') {
-        // If admin user doesn't exist, create it first, then sign in.
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
             await addUser(db, { id: userCredential.user.uid, name: 'Admin', email: adminEmail, role: 'Admin', status: 'Approved' });
@@ -164,9 +209,10 @@ export default function LoginPage() {
       return;
     }
     setIsLoading(true);
+    const provider = new GoogleAuthProvider();
 
     try {
-      const provider = new GoogleAuthProvider();
+      // First, try with popup
       const result = await signInWithPopup(auth, provider);
       const firebaseUser = result.user;
 
@@ -198,13 +244,21 @@ export default function LoginPage() {
       }
 
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Google Sign In Failed",
-        description: error.message || "An unexpected error occurred.",
-      });
+      if (error.code === 'auth/popup-blocked') {
+        // If popup is blocked, use redirect
+        await auth.signInWithRedirect(provider);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Google Sign In Failed",
+          description: error.message || "An unexpected error occurred.",
+        });
+      }
     } finally {
-      setIsLoading(false);
+      // Don't set loading to false here if a redirect is in progress
+      if (auth.currentUser === null) {
+          setIsLoading(false);
+      }
     }
   };
 
