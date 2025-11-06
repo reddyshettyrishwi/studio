@@ -114,24 +114,46 @@ export default function LoginPage() {
       }
     } else { // SIGN IN (All Roles)
       try {
-        // Special admin creation logic
-        if (selectedRole === 'Admin' && email === 'admin@nxtwave.co.in') {
-          try {
-            await signInWithEmailAndPassword(auth, email, password)
-          } catch(error: any) {
-             if (error.code === 'auth/user-not-found') {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                await addUser(db, { id: userCredential.user.uid, name: 'Admin', email, role: 'Admin', status: 'Approved' });
-             } else {
-               throw error; // Re-throw other sign-in errors
-             }
-          }
-        } else {
-          await signInWithEmailAndPassword(auth, email, password);
+        // Step 1: Authenticate with Firebase Auth
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
+
+        // Step 2: Fetch user profile from Firestore
+        const userProfile = await findUserByEmail(db, firebaseUser.email!);
+
+        // Step 3: Validate Role
+        if (!userProfile) {
+            // This case is unlikely if they could sign in, but handle it defensively.
+            await auth.signOut();
+            toast({ variant: "destructive", title: "Sign In Failed", description: "User profile not found." });
+            setIsProcessing(false);
+            return;
         }
-        // Let the main useEffect handle the logic after successful sign-in.
+
+        if (userProfile.role !== selectedRole) {
+            await auth.signOut();
+            toast({ variant: "destructive", title: "Sign In Failed", description: "Incorrect role selected for this account." });
+            setIsProcessing(false);
+            return;
+        }
+
+        if (userProfile.status !== 'Approved') {
+            await auth.signOut();
+            const description = userProfile.status === 'Pending' 
+                ? "This account is pending approval." 
+                : "This account has been rejected.";
+            toast({ variant: "destructive", title: "Sign In Failed", description });
+            setIsProcessing(false);
+            if (userProfile.status === 'Pending') {
+                router.push('/pending-approval');
+            }
+            return;
+        }
+        
+        // If everything is correct, the main useEffect will handle redirection.
+        // The setIsProcessing(false) is handled by the redirect.
       } catch (error: any) {
-         toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid credentials or account not approved." });
+         toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid email or password." });
          setIsProcessing(false);
       }
     }
@@ -243,3 +265,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
