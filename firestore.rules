@@ -11,46 +11,32 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
     
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAdmin() {
-      // In a real app, this would check for a custom claim or a specific role in the database.
-      // For this demo, we'll check a 'role' field on the user's document.
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      return isSignedIn() && getUserData().role == 'Admin';
     }
 
     match /users/{userId} {
-      // VALIDATION: Ensure incoming user data has the correct fields and types.
-      function isNewUserDataValid() {
-        let data = request.resource.data;
-        return data.name is string &&
-               data.email is string &&
-               data.role is string &&
-               data.status is string &&
-               data.keys().hasAll(['name', 'email', 'role', 'status']);
-      }
-      
-      function isStatusUpdateValid() {
-        let data = request.resource.data;
-        // Check that only 'status' is being updated.
-        return data.keys().hasOnly(['status']) && 
-               data.status is string && 
-               (data.status == 'Approved' || data.status == 'Rejected');
-      }
-
-      // SECURITY:
-      // Allow a user to read their own profile.
+      // A user can read their own profile.
       allow get: if isOwner(userId);
+      
+      // An admin can read any user's profile.
+      allow get: if isAdmin();
 
-      // Admins can list users but ONLY if the query is for "Pending" status.
-      // This is a critical rule for the approvals page to work.
-      allow list: if isAdmin() && request.query.get("status") == "Pending";
+      // Admins can list users, but ONLY if they are specifically querying for "Pending" users.
+      // This is critical for the Approvals page to work securely.
+      allow list: if isAdmin() && request.query.where.get('status')[2] == 'Pending';
 
-      // Allow a user to create their own user document if the data is valid.
-      allow create: if isOwner(userId) && isNewUserDataValid();
+      // A user can create their own document upon sign-up.
+      allow create: if isOwner(userId);
 
-      // Allow an admin to update a user's status (e.g., for approvals).
-      allow update: if isAdmin() && isStatusUpdateValid();
+      // An admin can update a user's status to approve or reject them.
+      allow update: if isAdmin();
                        
-      // Allow a user to delete their own account.
+      // A user can delete their own account. An admin can also delete accounts.
       allow delete: if isOwner(userId) || isAdmin();
     }
 

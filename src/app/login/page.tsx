@@ -60,16 +60,6 @@ export default function LoginPage() {
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
   const handleAdminSignIn = async () => {
-    if (email !== 'admin@nxtwave.co.in' || password !== '12345678') {
-      toast({
-        variant: "destructive",
-        title: "Admin Sign In Failed",
-        description: "Invalid credentials for Admin sign in.",
-      });
-      setIsLoading(false);
-      return;
-    }
-
     if (!db || !auth) {
         toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
         setIsLoading(false);
@@ -78,27 +68,30 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push(`/dashboard?role=Admin&name=Admin%20User`);
-    } catch (error: any) {
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email: email, role: 'Admin', status: 'Approved' });
-          router.push(`/dashboard?role=Admin&name=Admin%20User`);
-        } catch (signUpError: any) {
-          toast({
-            variant: "destructive",
-            title: "Admin Setup Failed",
-            description: signUpError.message || "Could not create the initial admin user.",
-          });
-        }
+      const user = await findUserByEmail(db, email);
+      if (user?.role === 'Admin') {
+        router.push(`/dashboard?role=Admin&name=Admin%20User`);
       } else {
         toast({
           variant: "destructive",
           title: "Admin Sign In Failed",
-          description: error.message || "An unexpected error occurred.",
+          description: "This account does not have admin privileges.",
         });
       }
+    } catch (error: any) {
+       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+         toast({
+          variant: "destructive",
+          title: "Admin Sign In Failed",
+          description: "Invalid admin credentials.",
+        });
+       } else {
+         toast({
+            variant: "destructive",
+            title: "Admin Sign In Failed",
+            description: error.message || "An unexpected error occurred.",
+          });
+       }
     } finally {
       setIsLoading(false);
     }
@@ -129,12 +122,27 @@ export default function LoginPage() {
         return;
       }
       try {
+        // Check if user already exists in Auth
+        const existingUser = await findUserByEmail(db, email);
+        if (existingUser) {
+           toast({ variant: "destructive", title: "Sign Up Failed", description: "An account with this email already exists." });
+           setIsLoading(false);
+           return;
+        }
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
+        
+        // After successful sign up, sign out the user so they can't access until approved
+        await auth.signOut();
         router.push('/pending-approval');
       } catch (error: any) {
-         toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "An error occurred during sign up." });
+         if (error.code === 'auth/email-already-in-use') {
+             toast({ variant: "destructive", title: "Sign Up Failed", description: "An account with this email already exists." });
+         } else {
+            toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "An error occurred during sign up." });
+         }
       } finally {
         setIsLoading(false);
       }
@@ -146,13 +154,15 @@ export default function LoginPage() {
           if (user.status === 'Approved') {
             router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
           } else {
+             await auth.signOut();
             router.push('/pending-approval');
           }
         } else {
-            throw new Error("User data not found in database.");
+             await auth.signOut();
+            throw new Error("User data not found in database. Please sign up first.");
         }
       } catch (error: any) {
-         toast({ variant: "destructive", title: "Sign In Failed", description: error.message || "Invalid credentials." });
+         toast({ variant: "destructive", title: "Sign In Failed", description: error.message || "Invalid credentials or account not approved." });
       } finally {
          setIsLoading(false);
       }
