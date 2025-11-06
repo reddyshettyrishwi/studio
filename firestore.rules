@@ -23,21 +23,23 @@ service cloud.firestore {
 
     match /users/{userId} {
       // A user can read/write their own profile.
-      allow read, write: if isOwner(userId);
-      
-      // An admin can read any user's profile for individual lookups.
-      allow get: if isAdmin();
+      // An admin can also get any user profile.
+      allow get, write: if isOwner(userId) || isAdmin();
 
-      // Admins can list users, but ONLY if they are specifically querying for "Pending" users.
-      // This is critical for the Approvals page to work securely.
-      allow list: if isAdmin() && request.query.get('where_flt_1') == ['status', '==', 'Pending'];
-
-      // An admin can update a user's status to approve or reject them.
-      allow update: if isAdmin();
+      // ANY authenticated user can query the users collection, but ONLY if they are querying for their OWN email.
+      // This allows findUserByEmail to work post-login without opening up the whole collection.
+      allow list: if isSignedIn() && request.query.get("where_flt_1") == ["email", "==", request.auth.token.email];
                        
       // A user can delete their own account. An admin can also delete accounts.
       allow delete: if isOwner(userId) || isAdmin();
     }
+    
+    match /users/{userId} {
+        // An admin can list users, but ONLY if they are specifically querying for "Pending" users.
+        // This is a separate match block to allow for a different list rule on the same path.
+        allow list: if isAdmin() && request.query.get('where_flt_1') == ['status', '==', 'Pending'];
+    }
+
 
     /**
      * @description Allows any signed-in user to manage agencies.
