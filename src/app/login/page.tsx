@@ -37,73 +37,28 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
   const [isProcessing, setIsProcessing] = React.useState(false);
 
-  // Effect to handle redirection AFTER Firebase has determined the auth state
+  // This effect will automatically redirect a logged-in user.
   React.useEffect(() => {
-    if (isUserLoading) {
-      // Still checking auth state, do nothing
-      return;
-    }
-    if (authUser && db) { // User is logged in
-        findUserByEmail(db, authUser.email!).then(user => {
-            if (user) {
-                 if (user.status === 'Approved') {
-                    router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
-                } else if (user.status === 'Pending') {
-                    router.push('/pending-approval');
-                }
-                // If rejected, they will just stay on login page after sign in fails.
+    if (isUserLoading || !authUser || !db) return; // Wait until loading is done and we have a user
+
+    findUserByEmail(db, authUser.email!).then(user => {
+        if (user) {
+             if (user.status === 'Approved') {
+                router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
+            } else if (user.status === 'Pending') {
+                router.push('/pending-approval');
             }
-        });
-    }
-    // If no authUser, just stay on the login page.
+            // If rejected, they will just stay on login page after sign in fails.
+        }
+    });
   }, [isUserLoading, authUser, router, db]);
 
-
-  const handleAdminSignIn = async () => {
-    setIsProcessing(true);
-    if (!db || !auth) {
-        toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
-        setIsProcessing(false);
-        return;
+  // When a role is changed, 'Admin' can't sign up.
+  React.useEffect(() => {
+    if (selectedRole === 'Admin') {
+      setIsSigningUp(false);
     }
-
-    const adminEmail = 'admin@nxtwave.co.in';
-    const adminPassword = '12345678';
-
-    try {
-      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      // Let the useEffect handle the redirect
-    } catch (error: any) {
-       if (error.code === 'auth/user-not-found') {
-        try {
-            const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-            await addUser(db, { id: userCredential.user.uid, name: 'Admin', email: adminEmail, role: 'Admin', status: 'Approved' });
-            // Let the useEffect handle the redirect
-        } catch (createError: any) {
-            toast({
-                variant: "destructive",
-                title: "Admin Creation Failed",
-                description: createError.message || "Could not create initial admin user.",
-            });
-             setIsProcessing(false);
-        }
-       } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-         toast({
-          variant: "destructive",
-          title: "Admin Sign In Failed",
-          description: "Invalid admin credentials. Please check the password.",
-        });
-         setIsProcessing(false);
-       } else {
-         toast({
-            variant: "destructive",
-            title: "Admin Sign In Failed",
-            description: error.message || "An unexpected error occurred.",
-          });
-          setIsProcessing(false);
-       }
-    }
-  };
+  }, [selectedRole]);
 
 
   const handleAuthAction = async () => {
@@ -114,12 +69,7 @@ export default function LoginPage() {
 
     setIsProcessing(true);
 
-    if (selectedRole === 'Admin') {
-      await handleAdminSignIn();
-      return;
-    }
-
-    if (isSigningUp) {
+    if (isSigningUp && selectedRole !== 'Admin') { // SIGN UP (Managers & Executives)
       if (!name || !email || !password) {
         toast({ variant: "destructive", title: "Sign Up Failed", description: "Please fill in all fields." });
         setIsProcessing(false);
@@ -133,14 +83,11 @@ export default function LoginPage() {
            return;
         }
 
-        // We don't sign in the user here, just create the user record request
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
         await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
         
-        // After creating the user, we sign them out immediately.
-        // They need to wait for approval.
         await auth.signOut();
         
         router.push('/pending-approval');
@@ -153,9 +100,23 @@ export default function LoginPage() {
          }
          setIsProcessing(false);
       }
-    } else { // Sign In
+    } else { // SIGN IN (All Roles)
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        // Special admin creation logic
+        if (selectedRole === 'Admin' && email === 'admin@nxtwave.co.in') {
+          try {
+            await signInWithEmailAndPassword(auth, email, password)
+          } catch(error: any) {
+             if (error.code === 'auth/user-not-found') {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await addUser(db, { id: userCredential.user.uid, name: 'Admin', email, role: 'Admin', status: 'Approved' });
+             } else {
+               throw error; // Re-throw other sign-in errors
+             }
+          }
+        } else {
+          await signInWithEmailAndPassword(auth, email, password);
+        }
         // Let the useEffect handle the logic after sign-in.
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid credentials or account not approved." });
@@ -164,8 +125,8 @@ export default function LoginPage() {
     }
   };
 
-  // This is the main loading gate. It shows a full-screen loader while Firebase is initializing.
-  if (isUserLoading) {
+  // This is the main loading gate. It shows a full-screen loader while Firebase is initializing or if a user is already being redirected.
+  if (isUserLoading || authUser) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -173,7 +134,6 @@ export default function LoginPage() {
       );
   }
 
-  // Only render the login form if the user is not loading and not authenticated.
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="absolute top-8 left-8 flex items-center gap-2">
@@ -187,78 +147,70 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">
-            {selectedRole === 'Admin' ? 'Admin Sign In' : (isSigningUp ? "Create Account" : "Sign In")}
+            {isSigningUp ? "Create Account" : "Sign In"}
           </CardTitle>
           <CardDescription>
-            {selectedRole === 'Admin' ? 'Enter admin credentials to access the dashboard.' : (isSigningUp
+            {isSigningUp
               ? "Enter your details to create a new account."
-              : "Enter your credentials to access the dashboard.")}
+              : "Enter your credentials to access the dashboard."}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {(selectedRole !== 'Admin' || !isSigningUp) && (
-            <>
-              {isSigningUp && selectedRole !== 'Admin' && (
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required />
+            {isSigningUp && selectedRole !== 'Admin' && (
+              <div className="grid gap-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required />
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+          
+            <div className="grid gap-2">
+              <Label>Select Role</Label>
+              <RadioGroup
+                defaultValue="Manager"
+                className="grid grid-cols-3 gap-4"
+                value={selectedRole}
+                onValueChange={(value: UserRole) => setSelectedRole(value)}
+              >
+                <div>
+                  <RadioGroupItem value="Admin" id="admin" className="peer sr-only" />
+                  <Label
+                    htmlFor="admin"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    Admin
+                  </Label>
                 </div>
-              )}
-              {(selectedRole !== 'Admin') && (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          <div className="grid gap-2">
-            <Label>Select Role</Label>
-            <RadioGroup
-              defaultValue="Manager"
-              className="grid grid-cols-3 gap-4"
-              value={selectedRole}
-              onValueChange={(value: UserRole) => setSelectedRole(value)}
-            >
-              <div>
-                <RadioGroupItem value="Admin" id="admin" className="peer sr-only" />
-                <Label
-                  htmlFor="admin"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  Admin
-                </Label>
-              </div>
-              <div>
-                <RadioGroupItem value="Manager" id="manager" className="peer sr-only" />
-                <Label
-                  htmlFor="manager"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  Manager
-                </Label>
-              </div>
-              <div>
-                <RadioGroupItem value="Executive" id="executive" className="peer sr-only" />
-                <Label
-                  htmlFor="executive"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  Executive
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <Button onClick={handleAuthAction} className="w-full" disabled={isProcessing}>
-            {isProcessing ? <Loader2 className="animate-spin" /> : (isSigningUp && selectedRole !== 'Admin' ? "Sign Up" : "Sign In")}
-          </Button>
+                <div>
+                  <RadioGroupItem value="Manager" id="manager" className="peer sr-only" />
+                  <Label
+                    htmlFor="manager"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    Manager
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem value="Executive" id="executive" className="peer sr-only" />
+                  <Label
+                    htmlFor="executive"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    Executive
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <Button onClick={handleAuthAction} className="w-full" disabled={isProcessing}>
+              {isProcessing ? <Loader2 className="animate-spin" /> : (isSigningUp ? "Sign Up" : "Sign In")}
+            </Button>
         </CardContent>
         {selectedRole !== 'Admin' && (
            <CardFooter>
@@ -278,5 +230,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
