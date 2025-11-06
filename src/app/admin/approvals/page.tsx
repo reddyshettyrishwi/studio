@@ -5,12 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from 'next/navigation'
 import {
-  Home,
   LogOut,
-  Megaphone,
-  MessageSquare,
-  Users,
-  UserRound,
   CheckCircle,
 } from "lucide-react";
 import { UserRole, PendingUser } from "@/lib/types";
@@ -26,7 +21,6 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
-  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Table,
@@ -37,45 +31,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
+import { Megaphone } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 function AdminApprovalsContent() {
   const searchParams = useSearchParams()
-  const initialRole = (searchParams.get('role') as UserRole) || "Admin";
-  const initialName = searchParams.get('name') || "Admin User";
+  const router = useRouter();
   const db = useFirestore();
+  const { user: authUser, isUserLoading } = useUser();
 
   const { toast } = useToast();
   const [pendingUsers, setPendingUsers] = React.useState<PendingUser[]>([]);
-  const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
-  const [userName, setUserName] = React.useState<string>(initialName);
   
+  // This effect redirects if the user is not an admin
   React.useEffect(() => {
-    if (!db) return;
+    if (!isUserLoading && authUser?.email !== 'admin@nxtwave.co.in') {
+      router.push('/login');
+    }
+  }, [authUser, isUserLoading, router]);
+
+  React.useEffect(() => {
+    if (!db || authUser?.email !== 'admin@nxtwave.co.in') return;
+    
+    // The query for pending users is now allowed by security rules
     const unsub = getPendingUsers(db, (users) => {
       setPendingUsers(users);
     });
-    return () => unsub();
-  }, [db]);
 
-  if (userRole !== 'Admin') {
+    return () => unsub();
+  }, [db, authUser]);
+
+  if (isUserLoading || authUser?.email !== 'admin@nxtwave.co.in') {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Access Denied</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p>You do not have permission to view this page.</p>
-                    <Link href="/login">
-                        <Button className="mt-4">Return to Login</Button>
-                    </Link>
-                </CardContent>
-            </Card>
+           <p>Loading...</p>
         </div>
     );
   }
@@ -87,14 +80,18 @@ function AdminApprovalsContent() {
 
     if (approve) {
       await approveUser(db, userId);
+      toast({
+          title: `User Approved`,
+          description: `${user.name}'s account has been approved.`,
+      });
     } else {
       await rejectUser(db, userId);
+       toast({
+          title: `User Rejected`,
+          description: `${user.name}'s account has been rejected.`,
+          variant: "destructive"
+      });
     }
-
-    toast({
-        title: `User ${approve ? 'Approved' : 'Rejected'}`,
-        description: `${user.name}'s account has been ${approve ? 'approved' : 'rejected'}.`,
-    });
   }
 
 
@@ -111,55 +108,9 @@ function AdminApprovalsContent() {
         </SidebarHeader>
 
         <SidebarContent>
-            <div className="p-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-12 w-12">
-                   <AvatarFallback className="bg-primary/20 text-primary">
-                    <UserRound className="h-6 w-6" />
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold text-lg">{userName}</p>
-                  <p className="text-sm text-muted-foreground">{userRole}</p>
-                </div>
-              </div>
-            </div>
-            <SidebarSeparator />
           <SidebarMenu>
-            <SidebarMenuItem>
-              <Link href={`/dashboard?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton size="lg">
-                  <Home />
-                  Dashboard
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton size="lg">
-                  <Users />
-                  Influencers
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href={`/campaigns?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton size="lg">
-                  <Megaphone />
-                  Campaigns
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton size="lg">
-                  <MessageSquare />
-                  Messaging
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
              <SidebarMenuItem>
-              <Link href={`/admin/approvals?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/admin/approvals`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <CheckCircle />
                   Approvals

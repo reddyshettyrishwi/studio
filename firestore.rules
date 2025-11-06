@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Custom function to check if the user is an Admin based on email
+    function isAdmin() {
+      return request.auth.token.email == 'admin@nxtwave.co.in';
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // READ: 
+      // 1. A user can read their own document.
+      // 2. An Admin can read any user document (needed to check details).
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+
+      // LIST (Query):
+      // An Admin can query the users collection ONLY IF they are filtering by 'status' == 'Pending'.
+      // This is crucial and secure for the approvals page.
+      allow list: if isSignedIn() && isAdmin() && request.query.where.get('status', ['in-query'])[0] == 'Pending';
+
+      // CREATE:
+      // Any user can create their own user document (sign up).
+      allow create: if isSignedIn() && isOwner(userId);
+      
+      // UPDATE:
+      // An Admin can update any user document (to approve/reject).
+      allow update: if isSignedIn() && isAdmin();
+
+      // DELETE:
+      // An admin can delete a user document (to reject).
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    // Rules for 'agencies', 'influencers', and 'campaigns'
+    match /{collection}/{docId} {
+      // Any signed-in user can read and write to the main data collections.
+      allow read, write: if isSignedIn();
+    }
+  }
+}

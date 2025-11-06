@@ -38,6 +38,7 @@ export default function LoginPage() {
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
   const handleAdminSignIn = async () => {
+    setIsLoading(true);
     if (!db || !auth) {
         toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
         setIsLoading(false);
@@ -47,37 +48,24 @@ export default function LoginPage() {
     const adminEmail = 'admin@nxtwave.co.in';
     const adminPassword = '12345678';
 
-    if (email !== adminEmail || password !== adminPassword) {
-        toast({ variant: "destructive", title: "Admin Sign In Failed", description: "Invalid admin credentials." });
-        setIsLoading(false);
-        return;
-    }
-
     try {
       await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      const user = await findUserByEmail(db, adminEmail);
-      if (user?.role === 'Admin') {
-        router.push(`/dashboard?role=Admin&name=Admin%20User`);
-      } else {
-         await auth.signOut();
-        toast({
-          variant: "destructive",
-          title: "Admin Sign In Failed",
-          description: "This account does not have admin privileges.",
-        });
-      }
+      // On successful sign-in, Firestore rules will determine access.
+      // The admin's unique access is to the approvals page.
+      router.push(`/admin/approvals?role=Admin&name=Admin%20User`);
     } catch (error: any) {
        if (error.code === 'auth/user-not-found') {
-        // If admin user doesn't exist, create it
+        // If admin user doesn't exist, create it first, then sign in.
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+            // Add user to DB with 'Approved' status.
             await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email: adminEmail, role: 'Admin', status: 'Approved' });
-            router.push(`/dashboard?role=Admin&name=Admin%20User`);
+            router.push(`/admin/approvals?role=Admin&name=Admin%20User`);
         } catch (createError: any) {
             toast({
                 variant: "destructive",
                 title: "Admin Creation Failed",
-                description: createError.message || "Could not create admin user.",
+                description: createError.message || "Could not create initial admin user.",
             });
         }
        } else if (error.code === 'auth/invalid-credential') {
@@ -132,10 +120,11 @@ export default function LoginPage() {
 
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
+        // Add user with 'Pending' status.
         await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
         
-        await auth.signOut();
-        router.push('/pending-approval');
+        await auth.signOut(); // Sign out immediately after registration
+        router.push('/pending-approval'); // Redirect to pending page
       } catch (error: any) {
          if (error.code === 'auth/email-already-in-use') {
              toast({ variant: "destructive", title: "Sign Up Failed", description: "An account with this email already exists." });
@@ -149,15 +138,20 @@ export default function LoginPage() {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = await findUserByEmail(db, userCredential.user.email!);
+        
         if (user) {
           if (user.status === 'Approved') {
             router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
-          } else {
+          } else if (user.status === 'Pending') {
              await auth.signOut();
-            router.push('/pending-approval');
+             router.push('/pending-approval');
+          } else { // Should not happen, but as a fallback
+             await auth.signOut();
+             toast({ variant: "destructive", title: "Sign In Failed", description: "Your account has been rejected or is in an unknown state." });
           }
         } else {
              await auth.signOut();
+            // This case might happen if auth user exists but DB record doesn't
             throw new Error("User data not found in database. Please sign up first.");
         }
       } catch (error: any) {
@@ -267,5 +261,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

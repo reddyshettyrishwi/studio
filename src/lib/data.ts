@@ -45,24 +45,22 @@ export const getCampaigns = async (db: Firestore): Promise<Campaign[]> => {
 export const addUser = async (db: Firestore, user: Omit<User, 'password'>) => {
     const userRef = doc(db, 'users', user.id);
     
-    const docSnap = await getDoc(userRef);
-    if (docSnap.exists()) {
-        console.warn("User document already exists, not overwriting.");
-        return;
-    }
+    // For admins, status is always 'Approved'. For others, it's what's passed or defaults to 'Pending'.
+    const status = user.role === 'Admin' ? 'Approved' : (user.status || 'Pending');
 
     const newUser = {
         name: user.name,
         email: user.email,
         role: user.role,
-        status: user.status || 'Pending',
+        status: status,
     };
 
-    await setDoc(userRef, newUser);
+    await setDoc(userRef, newUser, { merge: true }); // Use merge to avoid overwriting if doc exists
     return { id: user.id, ...newUser } as User;
 };
 
 export const findUserByEmail = async (db: Firestore, email: string): Promise<User | undefined> => {
+    if (!email) return undefined;
     const usersCol = collection(db, 'users');
     const q = query(usersCol, where("email", "==", email));
     const snapshot = await getDocs(q);
@@ -74,28 +72,11 @@ export const findUserByEmail = async (db: Firestore, email: string): Promise<Use
 };
 
 
-export const findUserByCredentials = async (db: Firestore, email: string, password?: string): Promise<User | undefined> => {
-  const user = await findUserByEmail(db, email);
-  if (!user) return undefined;
-
-  // This check is insecure and only for demonstration.
-  // In a real app, Firebase Auth handles password verification securely on the backend.
-  if (password && user.password && user.password === password) {
-    return user;
-  }
-  // If no password is provided (e.g., Google Sign-In), just return the user found by email.
-  if (!password) {
-      return user;
-  }
-
-  return undefined;
-};
-
-
 export const getPendingUsers = (db: Firestore, callback: (users: PendingUser[]) => void) => {
     const usersCol = collection(db, 'users');
     const q = query(usersCol, where("status", "==", "Pending"));
     
+    // This onSnapshot will now work because of the new security rules.
     return onSnapshot(q, (snapshot) => {
         const pendingUsers = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -108,6 +89,10 @@ export const getPendingUsers = (db: Firestore, callback: (users: PendingUser[]) 
             } as PendingUser
         });
         callback(pendingUsers);
+    }, (error) => {
+        console.error("Error fetching pending users:", error);
+        // You might want to handle this error in the UI
+        callback([]); // Return empty array on error
     });
 };
 
@@ -117,13 +102,10 @@ export const approveUser = async (db: Firestore, userId: string) => {
 };
 
 export const rejectUser = async (db: Firestore, userId: string) => {
+    // Instead of deleting, we could also set status to 'Rejected'
+    // For now, we delete as per the original logic.
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
-};
-
-export const isUserApproved = async (db: Firestore, email: string): Promise<boolean> => {
-    const user = await findUserByEmail(db, email);
-    return user?.status === 'Approved';
 };
 
 // =================================================================

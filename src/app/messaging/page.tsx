@@ -98,15 +98,6 @@ function MessagingContent() {
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
-             {userRole === 'Admin' && (
-              <SidebarMenuItem>
-                <Link href={`/admin/approvals?role=${userRole}&name=${userName}`} className="w-full">
-                  <SidebarMenuButton size="lg">
-                    <CheckCircle />
-                    Approvals
-                  </SidebarMenuButton>
-                </Link>              </SidebarMenuItem>
-            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
