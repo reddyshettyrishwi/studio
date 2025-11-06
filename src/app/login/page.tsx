@@ -43,8 +43,7 @@ export default function LoginPage() {
     getRedirectResult(auth)
       .then(async (result) => {
         if (result) {
-          // User has just been redirected from Google Sign-In
-          setIsLoading(true); // Keep loading state active
+          // User has just been redirected from Google Sign-In. Keep loading.
           const firebaseUser = result.user;
           if (!firebaseUser.email) {
             toast({ variant: "destructive", title: "Sign In Failed", description: "Your Google account does not have an email address." });
@@ -76,7 +75,8 @@ export default function LoginPage() {
             router.push('/pending-approval');
           }
         } else {
-            setIsLoading(false); // Only stop loading if there is no redirect result
+            // No redirect result, so stop loading and show the form.
+            setIsLoading(false);
         }
       })
       .catch((error) => {
@@ -131,7 +131,10 @@ export default function LoginPage() {
           });
        }
     } finally {
-      setIsLoading(false);
+      // Don't set loading to false here on success, as the router push will unmount the component
+      if (!router.asPath.startsWith('/dashboard')) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -180,8 +183,7 @@ export default function LoginPage() {
          } else {
             toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "An error occurred during sign up." });
          }
-      } finally {
-        setIsLoading(false);
+         setIsLoading(false);
       }
     } else { // Sign In
       try {
@@ -197,14 +199,15 @@ export default function LoginPage() {
           } else {
              await auth.signOut();
              toast({ variant: "destructive", title: "Sign In Failed", description: "Your account has been rejected or is in an unknown state." });
+             setIsLoading(false);
           }
         } else {
              await auth.signOut();
-            throw new Error("User data not found in database. Please sign up first.");
+            toast({ variant: "destructive", title: "User Not Found", description: "Your account details were not found. Please sign up." });
+            setIsLoading(false);
         }
       } catch (error: any) {
-         toast({ variant: "destructive", title: "Sign In Failed", description: error.message || "Invalid credentials or account not approved." });
-      } finally {
+         toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid credentials or account not approved." });
          setIsLoading(false);
       }
     }
@@ -306,7 +309,7 @@ export default function LoginPage() {
 
               {isManagerOrExecutive && (
                 <>
-                  <Button onClick={handleAuthAction} className="w-full">
+                  <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
                     {isSigningUp ? "Sign Up" : "Sign In"}
                   </Button>
 
@@ -321,7 +324,7 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                  <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
                     <Chrome className="mr-2 h-4 w-4" />
                     Sign in with Google
                   </Button>
@@ -329,7 +332,7 @@ export default function LoginPage() {
               )}
 
               {selectedRole === 'Admin' && (
-                <Button onClick={handleAuthAction} className="w-full">
+                <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
                   Sign In
                 </Button>
               )}
@@ -355,3 +358,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
