@@ -12,26 +12,25 @@ service cloud.firestore {
     }
     
     function getUserData() {
+      // It's safer to check for existence before accessing data
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      return isSignedIn() && getUserData().role == 'Admin';
+      // Ensure the user document and role exist before checking
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'Admin';
     }
 
     match /users/{userId} {
-      // A user can read their own profile.
-      allow get: if isOwner(userId);
+      // A user can read/write their own profile.
+      allow read, write: if isOwner(userId);
       
-      // An admin can read any user's profile.
+      // An admin can read any user's profile for individual lookups.
       allow get: if isAdmin();
 
       // Admins can list users, but ONLY if they are specifically querying for "Pending" users.
       // This is critical for the Approvals page to work securely.
-      allow list: if isAdmin() && request.query.where.get('status')[2] == 'Pending';
-
-      // A user can create their own document upon sign-up.
-      allow create: if isOwner(userId);
+      allow list: if isAdmin() && request.query.get('where_flt_1') == ['status', '==', 'Pending'];
 
       // An admin can update a user's status to approve or reject them.
       allow update: if isAdmin();
