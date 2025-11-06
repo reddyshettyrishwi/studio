@@ -19,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, useUser } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, GoogleAuthProvider, getRedirectResult } from "firebase/auth";
 
 
@@ -28,73 +28,84 @@ export default function LoginPage() {
   const { toast } = useToast();
   const db = useFirestore();
   const auth = useAuth();
+  const { user: authUser, isUserLoading } = useUser();
+
   const [isSigningUp, setIsSigningUp] = React.useState(false);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
-  const [isLoading, setIsLoading] = React.useState(true); // Start loading to handle redirect
-  
+  const [isProcessing, setIsProcessing] = React.useState(false); // Local processing state for button clicks
+
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
+  // Effect to handle redirection AFTER Firebase has determined the auth state
   React.useEffect(() => {
-    if (!auth || !db) return;
+    if (!isUserLoading && authUser) {
+        findUserByEmail(db, authUser.email!).then(user => {
+            if (user) {
+                 if (user.status === 'Approved') {
+                    router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
+                } else {
+                    auth.signOut();
+                    router.push('/pending-approval');
+                }
+            }
+        });
+    }
+  }, [isUserLoading, authUser, router, db, auth]);
 
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result) {
-          // User has just been redirected from Google Sign-In. Keep loading.
-          const firebaseUser = result.user;
-          if (!firebaseUser.email) {
-            toast({ variant: "destructive", title: "Sign In Failed", description: "Your Google account does not have an email address." });
-            await auth.signOut();
-            setIsLoading(false);
-            return;
-          }
 
-          const existingUser = await findUserByEmail(db, firebaseUser.email);
-          if (existingUser) {
-            if (existingUser.status === 'Approved') {
-              router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
-            } else {
-              // User exists but is not approved.
+  // Effect to handle the result from Google's redirect
+  React.useEffect(() => {
+    if (auth && db && !authUser) { // Only run if we know auth is ready and user is not yet logged in
+      getRedirectResult(auth)
+        .then(async (result) => {
+          if (result) {
+            setIsProcessing(true); // Show loading indicator
+            const firebaseUser = result.user;
+            if (!firebaseUser.email) {
+              toast({ variant: "destructive", title: "Sign In Failed", description: "Your Google account does not have an email address." });
+              await auth.signOut();
+              setIsProcessing(false);
+              return;
+            }
+
+            const existingUser = await findUserByEmail(db, firebaseUser.email);
+            if (!existingUser) {
+              // This is a new user signing up with Google
+              const newUser = {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || 'New User',
+                email: firebaseUser.email,
+                role: 'Manager' as const, // Default role for Google sign-up
+                status: 'Pending' as const,
+              };
+              await addUser(db, newUser);
               await auth.signOut();
               router.push('/pending-approval');
             }
-          } else {
-            // New user via Google. Create them and send to pending.
-            const newUser = {
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName || 'New User',
-              email: firebaseUser.email,
-              role: selectedRole === 'Admin' ? 'Manager' : selectedRole,
-              status: 'Pending' as const,
-            };
-            await addUser(db, newUser);
-            await auth.signOut();
-            router.push('/pending-approval');
+            // If user exists, the onAuthStateChanged/useUser hook will handle redirection.
+            // No need for else block here, as the top useEffect will catch the new auth state.
           }
-        } else {
-            // No redirect result, so stop loading and show the form.
-            setIsLoading(false);
-        }
-      })
-      .catch((error) => {
-        toast({
-          variant: "destructive",
-          title: "Google Sign In Failed",
-          description: error.message || "An unexpected error occurred during sign-in.",
+        })
+        .catch((error) => {
+          toast({
+            variant: "destructive",
+            title: "Google Sign In Failed",
+            description: error.message || "An unexpected error occurred during sign-in.",
+          });
+          setIsProcessing(false);
         });
-        setIsLoading(false);
-      });
-  }, [auth, db, router, selectedRole, toast]);
+    }
+  }, [auth, db, router, toast, authUser]);
 
 
   const handleAdminSignIn = async () => {
-    setIsLoading(true);
+    setIsProcessing(true);
     if (!db || !auth) {
         toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
-        setIsLoading(false);
+        setIsProcessing(false);
         return;
     }
 
@@ -103,53 +114,47 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      router.push(`/dashboard?role=Admin&name=Admin`);
+      // Let the useEffect handle the redirect
     } catch (error: any) {
        if (error.code === 'auth/user-not-found') {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
             await addUser(db, { id: userCredential.user.uid, name: 'Admin', email: adminEmail, role: 'Admin', status: 'Approved' });
-            router.push(`/dashboard?role=Admin&name=Admin`);
+            // Let the useEffect handle the redirect
         } catch (createError: any) {
             toast({
                 variant: "destructive",
                 title: "Admin Creation Failed",
                 description: createError.message || "Could not create initial admin user.",
             });
+             setIsProcessing(false);
         }
-       } else if (error.code === 'auth/invalid-credential') {
+       } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
          toast({
           variant: "destructive",
           title: "Admin Sign In Failed",
           description: "Invalid admin credentials. Please check the password.",
         });
+         setIsProcessing(false);
        } else {
          toast({
             variant: "destructive",
             title: "Admin Sign In Failed",
             description: error.message || "An unexpected error occurred.",
           });
+          setIsProcessing(false);
        }
-    } finally {
-      // Don't set loading to false here on success, as the router push will unmount the component
-      if (!router.asPath.startsWith('/dashboard')) {
-        setIsLoading(false);
-      }
     }
   };
 
 
   const handleAuthAction = async () => {
     if (!db || !auth) {
-      toast({
-        variant: "destructive",
-        title: "Initialization Error",
-        description: "Firebase is not ready. Please try again in a moment.",
-      });
+      toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
       return;
     }
 
-    setIsLoading(true);
+    setIsProcessing(true);
 
     if (selectedRole === 'Admin') {
       await handleAdminSignIn();
@@ -159,14 +164,14 @@ export default function LoginPage() {
     if (isSigningUp) {
       if (!name || !email || !password) {
         toast({ variant: "destructive", title: "Sign Up Failed", description: "Please fill in all fields." });
-        setIsLoading(false);
+        setIsProcessing(false);
         return;
       }
       try {
         const existingUser = await findUserByEmail(db, email);
         if (existingUser) {
            toast({ variant: "destructive", title: "Sign Up Failed", description: "An account with this email already exists." });
-           setIsLoading(false);
+           setIsProcessing(false);
            return;
         }
 
@@ -183,32 +188,15 @@ export default function LoginPage() {
          } else {
             toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "An error occurred during sign up." });
          }
-         setIsLoading(false);
+         setIsProcessing(false);
       }
     } else { // Sign In
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = await findUserByEmail(db, userCredential.user.email!);
-        
-        if (user) {
-          if (user.status === 'Approved') {
-            router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
-          } else if (user.status === 'Pending') {
-             await auth.signOut();
-             router.push('/pending-approval');
-          } else {
-             await auth.signOut();
-             toast({ variant: "destructive", title: "Sign In Failed", description: "Your account has been rejected or is in an unknown state." });
-             setIsLoading(false);
-          }
-        } else {
-             await auth.signOut();
-            toast({ variant: "destructive", title: "User Not Found", description: "Your account details were not found. Please sign up." });
-            setIsLoading(false);
-        }
+        await signInWithEmailAndPassword(auth, email, password);
+        // Let the useEffect handle the logic after sign-in.
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid credentials or account not approved." });
-         setIsLoading(false);
+         setIsProcessing(false);
       }
     }
   };
@@ -218,12 +206,24 @@ export default function LoginPage() {
       toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
       return;
     }
-    setIsLoading(true);
+    setIsProcessing(true);
     const provider = new GoogleAuthProvider();
+    // This will navigate away from the page, no need to set isProcessing to false here.
     await signInWithRedirect(auth, provider);
   };
 
+  // This is the main loading gate. It shows a full-screen loader while Firebase is initializing
+  // or if we are in the middle of a redirect/login process.
+  if (isUserLoading || isProcessing || authUser) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p className="mt-2">Please wait...</p>
+        </div>
+      );
+  }
 
+  // Only render the login form if the user is not loading and not authenticated.
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="absolute top-8 left-8 flex items-center gap-2">
@@ -246,13 +246,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {isLoading ? (
-            <div className="flex justify-center items-center p-8">
-              <Loader2 className="animate-spin" />
-              <p className="ml-2">Please wait...</p>
-            </div>
-          ) : (
-            <>
+              <>
               {isSigningUp && isManagerOrExecutive && (
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
@@ -296,7 +290,8 @@ export default function LoginPage() {
                     </Label>
                   </div>
                   <div>
-                    <RadioGroupItem value="Executive" id="executive" className="peer sr-only" />
+                    <RadioGroupItem value="Executive" id="executive" className="peer sr
+-only" />
                     <Label
                       htmlFor="executive"
                       className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
@@ -309,8 +304,8 @@ export default function LoginPage() {
 
               {isManagerOrExecutive && (
                 <>
-                  <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
-                    {isSigningUp ? "Sign Up" : "Sign In"}
+                  <Button onClick={handleAuthAction} className="w-full" disabled={isProcessing}>
+                    {isProcessing && !isSigningUp ? <Loader2 className="animate-spin" /> : (isSigningUp ? "Sign Up" : "Sign In")}
                   </Button>
 
                   <div className="relative">
@@ -324,7 +319,7 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+                  <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isProcessing}>
                     <Chrome className="mr-2 h-4 w-4" />
                     Sign in with Google
                   </Button>
@@ -332,15 +327,13 @@ export default function LoginPage() {
               )}
 
               {selectedRole === 'Admin' && (
-                <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
-                  Sign In
+                <Button onClick={handleAuthAction} className="w-full" disabled={isProcessing}>
+                   {isProcessing ? <Loader2 className="animate-spin" /> : "Sign In"}
                 </Button>
               )}
             </>
-          )}
-
         </CardContent>
-        {!isLoading && isManagerOrExecutive && (
+        {isManagerOrExecutive && (
            <CardFooter className="flex-col gap-4">
                <div className="text-sm">
                 <button
@@ -358,5 +351,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
