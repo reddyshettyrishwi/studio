@@ -44,15 +44,18 @@ export default function LoginPage() {
         return;
     }
 
-    if (email !== 'admin@nxtwave.co.in' || password !== '12345678') {
+    const adminEmail = 'admin@nxtwave.co.in';
+    const adminPassword = '12345678';
+
+    if (email !== adminEmail || password !== adminPassword) {
         toast({ variant: "destructive", title: "Admin Sign In Failed", description: "Invalid admin credentials." });
         setIsLoading(false);
         return;
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      const user = await findUserByEmail(db, email);
+      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      const user = await findUserByEmail(db, adminEmail);
       if (user?.role === 'Admin') {
         router.push(`/dashboard?role=Admin&name=Admin%20User`);
       } else {
@@ -67,8 +70,8 @@ export default function LoginPage() {
        if (error.code === 'auth/user-not-found') {
         // If admin user doesn't exist, create it
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email, role: 'Admin', status: 'Approved' });
+            const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+            await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email: adminEmail, role: 'Admin', status: 'Approved' });
             router.push(`/dashboard?role=Admin&name=Admin%20User`);
         } catch (createError: any) {
             toast({
