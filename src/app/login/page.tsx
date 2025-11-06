@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getRedirectResult } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, GoogleAuthProvider, getRedirectResult } from "firebase/auth";
 
 
 export default function LoginPage() {
@@ -33,20 +33,22 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true); // Start loading to handle redirect
   
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
   React.useEffect(() => {
-    if (!auth) return;
-    
-    setIsLoading(true);
+    if (!auth || !db) return;
+
     getRedirectResult(auth)
       .then(async (result) => {
         if (result) {
+          // User has just been redirected from Google Sign-In
           const firebaseUser = result.user;
           if (!firebaseUser.email) {
-            throw new Error("Google account does not have an email.");
+            toast({ variant: "destructive", title: "Sign In Failed", description: "Your Google account does not have an email address." });
+            await auth.signOut();
+            return;
           }
 
           const existingUser = await findUserByEmail(db, firebaseUser.email);
@@ -54,16 +56,18 @@ export default function LoginPage() {
             if (existingUser.status === 'Approved') {
               router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
             } else {
+              // User exists but is not approved.
               await auth.signOut();
               router.push('/pending-approval');
             }
           } else {
+            // New user via Google. Create them and send to pending.
             const newUser = {
               id: firebaseUser.uid,
               name: firebaseUser.displayName || 'New User',
               email: firebaseUser.email,
               role: selectedRole === 'Admin' ? 'Manager' : selectedRole,
-              status: 'Pending' as const
+              status: 'Pending' as const,
             };
             await addUser(db, newUser);
             await auth.signOut();
@@ -75,13 +79,14 @@ export default function LoginPage() {
         toast({
           variant: "destructive",
           title: "Google Sign In Failed",
-          description: error.message || "An unexpected error occurred during redirect.",
+          description: error.message || "An unexpected error occurred during sign-in.",
         });
       })
       .finally(() => {
-        setIsLoading(false);
+        setIsLoading(false); // Stop loading after checking for redirect
       });
-  }, [auth, db, router, toast, selectedRole]);
+  }, [auth, db, router, selectedRole, toast]);
+
 
   const handleAdminSignIn = async () => {
     setIsLoading(true);
@@ -204,62 +209,13 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!db || !auth) {
+    if (!auth) {
       toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
       return;
     }
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
-
-    try {
-      // First, try with popup
-      const result = await signInWithPopup(auth, provider);
-      const firebaseUser = result.user;
-
-      if (!firebaseUser.email) {
-        throw new Error("Google account does not have an email.");
-      }
-
-      const existingUser = await findUserByEmail(db, firebaseUser.email);
-
-      if (existingUser) {
-        if (existingUser.status === 'Approved') {
-          router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
-        } else {
-          await auth.signOut();
-          router.push('/pending-approval');
-        }
-      } else {
-        // New user via Google
-        const newUser = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || 'New User',
-          email: firebaseUser.email,
-          role: selectedRole === 'Admin' ? 'Manager' : selectedRole, // Default new Google users to Manager
-          status: 'Pending' as const
-        };
-        await addUser(db, newUser);
-        await auth.signOut();
-        router.push('/pending-approval');
-      }
-
-    } catch (error: any) {
-      if (error.code === 'auth/popup-blocked') {
-        // If popup is blocked, use redirect
-        await auth.signInWithRedirect(provider);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Google Sign In Failed",
-          description: error.message || "An unexpected error occurred.",
-        });
-      }
-    } finally {
-      // Don't set loading to false here if a redirect is in progress
-      if (auth.currentUser === null) {
-          setIsLoading(false);
-      }
-    }
+    await signInWithRedirect(auth, provider);
   };
 
 
@@ -285,92 +241,103 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {isSigningUp && isManagerOrExecutive && (
-            <div className="grid gap-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required />
+          {isLoading && (
+            <div className="flex justify-center items-center p-8">
+              <Loader2 className="animate-spin" />
+              <p className="ml-2">Please wait...</p>
             </div>
           )}
-          
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
 
-
-          <div className="grid gap-2">
-            <Label>Select Role</Label>
-            <RadioGroup
-              defaultValue="Manager"
-              className="grid grid-cols-3 gap-4"
-              value={selectedRole}
-              onValueChange={(value: UserRole) => setSelectedRole(value)}
-            >
-              <div>
-                <RadioGroupItem value="Admin" id="admin" className="peer sr-only" />
-                <Label
-                  htmlFor="admin"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  Admin
-                </Label>
-              </div>
-              <div>
-                <RadioGroupItem value="Manager" id="manager" className="peer sr-only" />
-                <Label
-                  htmlFor="manager"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  Manager
-                </Label>
-              </div>
-              <div>
-                <RadioGroupItem value="Executive" id="executive" className="peer sr-only" />
-                <Label
-                  htmlFor="executive"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  Executive
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-           {isManagerOrExecutive && (
+          {!isLoading && (
             <>
-              <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
-                {isLoading ? <Loader2 className="animate-spin" /> : (isSigningUp ? "Sign Up" : "Sign In")}
-              </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+              {isSigningUp && isManagerOrExecutive && (
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
+              )}
+              
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
 
-              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
-                 {isLoading ? <Loader2 className="animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
-                Sign in with Google
-              </Button>
+              <div className="grid gap-2">
+                <Label>Select Role</Label>
+                <RadioGroup
+                  defaultValue="Manager"
+                  className="grid grid-cols-3 gap-4"
+                  value={selectedRole}
+                  onValueChange={(value: UserRole) => setSelectedRole(value)}
+                >
+                  <div>
+                    <RadioGroupItem value="Admin" id="admin" className="peer sr-only" />
+                    <Label
+                      htmlFor="admin"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                    >
+                      Admin
+                    </Label>
+                  </div>
+                  <div>
+                    <RadioGroupItem value="Manager" id="manager" className="peer sr-only" />
+                    <Label
+                      htmlFor="manager"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                    >
+                      Manager
+                    </Label>
+                  </div>
+                  <div>
+                    <RadioGroupItem value="Executive" id="executive" className="peer sr-only" />
+                    <Label
+                      htmlFor="executive"
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                    >
+                      Executive
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {isManagerOrExecutive && (
+                <>
+                  <Button onClick={handleAuthAction} className="w-full">
+                    {isSigningUp ? "Sign Up" : "Sign In"}
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Sign in with Google
+                  </Button>
+                </>
+              )}
+
+              {selectedRole === 'Admin' && (
+                <Button onClick={handleAuthAction} className="w-full">
+                  Sign In
+                </Button>
+              )}
             </>
           )}
 
-          {selectedRole === 'Admin' && (
-            <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
-              {isLoading ? <Loader2 className="animate-spin" /> : 'Sign In'}
-            </Button>
-          )}
-
         </CardContent>
-        {isManagerOrExecutive && (
+        {!isLoading && isManagerOrExecutive && (
            <CardFooter className="flex-col gap-4">
                <div className="text-sm">
                 <button
