@@ -13,14 +13,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Megaphone, Loader2 } from "lucide-react";
+import { Megaphone, Loader2, Chrome } from "lucide-react";
 import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 
 export default function LoginPage() {
@@ -158,6 +158,56 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    if (!db || !auth) {
+      toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
+      return;
+    }
+    setIsLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const firebaseUser = result.user;
+
+      if (!firebaseUser.email) {
+        throw new Error("Google account does not have an email.");
+      }
+
+      const existingUser = await findUserByEmail(db, firebaseUser.email);
+
+      if (existingUser) {
+        if (existingUser.status === 'Approved') {
+          router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
+        } else {
+          await auth.signOut();
+          router.push('/pending-approval');
+        }
+      } else {
+        // New user via Google
+        const newUser = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'New User',
+          email: firebaseUser.email,
+          role: selectedRole === 'Admin' ? 'Manager' : selectedRole, // Default new Google users to Manager
+          status: 'Pending' as const
+        };
+        await addUser(db, newUser);
+        await auth.signOut();
+        router.push('/pending-approval');
+      }
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Google Sign In Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -235,9 +285,36 @@ export default function LoginPage() {
               </div>
             </RadioGroup>
           </div>
-          <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
-            {isLoading ? <Loader2 className="animate-spin" /> : (selectedRole === 'Admin' ? 'Sign In' : (isSigningUp ? "Sign Up" : "Sign Up"))}
-          </Button>
+           {isManagerOrExecutive && (
+            <>
+              <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
+                {isLoading ? <Loader2 className="animate-spin" /> : (isSigningUp ? "Sign Up" : "Sign In")}
+              </Button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+                 {isLoading ? <Loader2 className="animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
+                Sign in with Google
+              </Button>
+            </>
+          )}
+
+          {selectedRole === 'Admin' && (
+            <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
+              {isLoading ? <Loader2 className="animate-spin" /> : 'Sign In'}
+            </Button>
+          )}
+
         </CardContent>
         {isManagerOrExecutive && (
            <CardFooter className="flex-col gap-4">
@@ -257,3 +334,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
