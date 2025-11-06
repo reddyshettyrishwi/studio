@@ -13,36 +13,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Megaphone, Chrome, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Megaphone, Loader2 } from "lucide-react";
 import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { addUser, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-
-// Function to extract a display name from an email address
-const extractNameFromEmail = (email: string): string => {
-    if (!email || !email.includes('@')) {
-        return "User";
-    }
-    const namePart = email.split('@')[0];
-    // Remove numbers, dots, underscores, or hyphens and capitalize parts
-    const cleanedName = namePart
-        .replace(/[0-9._-]/g, ' ')
-        .replace(/\s+/g, ' ') // Replace multiple spaces with a single one
-        .trim();
-    
-    if (!cleanedName) return "User";
-
-    return cleanedName
-        .split(' ')
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
-};
 
 
 export default function LoginPage() {
@@ -66,12 +44,19 @@ export default function LoginPage() {
         return;
     }
 
+    if (email !== 'admin@nxtwave.co.in' || password !== '12345678') {
+        toast({ variant: "destructive", title: "Admin Sign In Failed", description: "Invalid admin credentials." });
+        setIsLoading(false);
+        return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       const user = await findUserByEmail(db, email);
       if (user?.role === 'Admin') {
         router.push(`/dashboard?role=Admin&name=Admin%20User`);
       } else {
+         await auth.signOut();
         toast({
           variant: "destructive",
           title: "Admin Sign In Failed",
@@ -79,11 +64,24 @@ export default function LoginPage() {
         });
       }
     } catch (error: any) {
-       if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+       if (error.code === 'auth/user-not-found') {
+        // If admin user doesn't exist, create it
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email, role: 'Admin', status: 'Approved' });
+            router.push(`/dashboard?role=Admin&name=Admin%20User`);
+        } catch (createError: any) {
+            toast({
+                variant: "destructive",
+                title: "Admin Creation Failed",
+                description: createError.message || "Could not create admin user.",
+            });
+        }
+       } else if (error.code === 'auth/invalid-credential') {
          toast({
           variant: "destructive",
           title: "Admin Sign In Failed",
-          description: "Invalid admin credentials.",
+          description: "Invalid admin credentials. Please check the password.",
         });
        } else {
          toast({
@@ -122,7 +120,6 @@ export default function LoginPage() {
         return;
       }
       try {
-        // Check if user already exists in Auth
         const existingUser = await findUserByEmail(db, email);
         if (existingUser) {
            toast({ variant: "destructive", title: "Sign Up Failed", description: "An account with this email already exists." });
@@ -134,7 +131,6 @@ export default function LoginPage() {
         const firebaseUser = userCredential.user;
         await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
         
-        // After successful sign up, sign out the user so they can't access until approved
         await auth.signOut();
         router.push('/pending-approval');
       } catch (error: any) {
