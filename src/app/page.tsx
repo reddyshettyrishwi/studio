@@ -2,10 +2,20 @@
 "use client";
 
 import Link from "next/link";
+import * as React from "react";
 import { Megaphone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/firebase";
 
 export default function LandingPage() {
+  const auth = useAuth();
+
+  React.useEffect(() => {
+    if (auth) {
+      auth.signOut();
+    }
+  }, [auth]);
+
   return (
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm fixed w-full z-20 top-0">

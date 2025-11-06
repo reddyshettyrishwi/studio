@@ -37,6 +37,13 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
   const [isProcessing, setIsProcessing] = React.useState(false);
 
+  // This effect will sign the user out when they navigate to the login page.
+  React.useEffect(() => {
+    if (auth) {
+      auth.signOut();
+    }
+  }, [auth]);
+
   // This effect will automatically redirect a logged-in user.
   React.useEffect(() => {
     if (isUserLoading || !authUser || !db) return; // Wait until loading is done and we have a user
@@ -88,9 +95,14 @@ export default function LoginPage() {
         
         await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
         
-        await auth.signOut();
+        // Don't sign out here, let the main useEffect handle redirection.
         
-        router.push('/pending-approval');
+        // Manually trigger a check that will lead to redirection
+         findUserByEmail(db, firebaseUser.email!).then(user => {
+            if (user && user.status === 'Pending') {
+                 router.push('/pending-approval');
+            }
+        });
 
       } catch (error: any) {
          if (error.code === 'auth/email-already-in-use') {
@@ -117,7 +129,7 @@ export default function LoginPage() {
         } else {
           await signInWithEmailAndPassword(auth, email, password);
         }
-        // Let the useEffect handle the logic after sign-in.
+        // Let the main useEffect handle the logic after successful sign-in.
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid credentials or account not approved." });
          setIsProcessing(false);
@@ -125,7 +137,8 @@ export default function LoginPage() {
     }
   };
 
-  // This is the main loading gate. It shows a full-screen loader while Firebase is initializing or if a user is already being redirected.
+  // The login page should only be shown when the user is not logged in.
+  // While checking, it shows a loader. If the user is logged in, the other effect will redirect them.
   if (isUserLoading || authUser) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center">
@@ -147,10 +160,10 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-headline">
-            {isSigningUp ? "Create Account" : "Sign In"}
+            {isSigningUp && selectedRole !== 'Admin' ? "Create Account" : "Sign In"}
           </CardTitle>
           <CardDescription>
-            {isSigningUp
+            {isSigningUp  && selectedRole !== 'Admin'
               ? "Enter your details to create a new account."
               : "Enter your credentials to access the dashboard."}
           </CardDescription>
@@ -209,7 +222,7 @@ export default function LoginPage() {
               </RadioGroup>
             </div>
             <Button onClick={handleAuthAction} className="w-full" disabled={isProcessing}>
-              {isProcessing ? <Loader2 className="animate-spin" /> : (isSigningUp ? "Sign Up" : "Sign In")}
+              {isProcessing ? <Loader2 className="animate-spin" /> : (isSigningUp && selectedRole !== 'Admin' ? "Sign Up" : "Sign In")}
             </Button>
         </CardContent>
         {selectedRole !== 'Admin' && (
