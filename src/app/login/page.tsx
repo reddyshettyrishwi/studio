@@ -50,17 +50,14 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-      // On successful sign-in, Firestore rules will determine access.
-      // The admin's unique access is to the approvals page.
-      router.push(`/admin/approvals?role=Admin&name=Admin%20User`);
+      router.push(`/dashboard?role=Admin&name=Admin`);
     } catch (error: any) {
        if (error.code === 'auth/user-not-found') {
         // If admin user doesn't exist, create it first, then sign in.
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-            // Add user to DB with 'Approved' status.
-            await addUser(db, { id: userCredential.user.uid, name: 'Admin User', email: adminEmail, role: 'Admin', status: 'Approved' });
-            router.push(`/admin/approvals?role=Admin&name=Admin%20User`);
+            await addUser(db, { id: userCredential.user.uid, name: 'Admin', email: adminEmail, role: 'Admin', status: 'Approved' });
+            router.push(`/dashboard?role=Admin&name=Admin`);
         } catch (createError: any) {
             toast({
                 variant: "destructive",
@@ -120,11 +117,11 @@ export default function LoginPage() {
 
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
-        // Add user with 'Pending' status.
+        
         await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
         
-        await auth.signOut(); // Sign out immediately after registration
-        router.push('/pending-approval'); // Redirect to pending page
+        await auth.signOut();
+        router.push('/pending-approval');
       } catch (error: any) {
          if (error.code === 'auth/email-already-in-use') {
              toast({ variant: "destructive", title: "Sign Up Failed", description: "An account with this email already exists." });
@@ -145,13 +142,12 @@ export default function LoginPage() {
           } else if (user.status === 'Pending') {
              await auth.signOut();
              router.push('/pending-approval');
-          } else { // Should not happen, but as a fallback
+          } else {
              await auth.signOut();
              toast({ variant: "destructive", title: "Sign In Failed", description: "Your account has been rejected or is in an unknown state." });
           }
         } else {
              await auth.signOut();
-            // This case might happen if auth user exists but DB record doesn't
             throw new Error("User data not found in database. Please sign up first.");
         }
       } catch (error: any) {
@@ -240,7 +236,7 @@ export default function LoginPage() {
             </RadioGroup>
           </div>
           <Button onClick={handleAuthAction} className="w-full" disabled={isLoading}>
-            {isLoading ? <Loader2 className="animate-spin" /> : (selectedRole === 'Admin' ? 'Sign In' : (isSigningUp ? "Sign Up" : "Sign In"))}
+            {isLoading ? <Loader2 className="animate-spin" /> : (selectedRole === 'Admin' ? 'Sign In' : (isSigningUp ? "Sign Up" : "Sign Up"))}
           </Button>
         </CardContent>
         {isManagerOrExecutive && (

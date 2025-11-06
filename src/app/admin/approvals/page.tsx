@@ -7,6 +7,11 @@ import { useSearchParams } from 'next/navigation'
 import {
   LogOut,
   CheckCircle,
+  Megaphone,
+  Home,
+  Users,
+  MessageSquare,
+  UserRound,
 } from "lucide-react";
 import { UserRole, PendingUser } from "@/lib/types";
 import { approveUser, rejectUser, getPendingUsers } from "@/lib/data";
@@ -21,6 +26,7 @@ import {
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   Table,
@@ -35,19 +41,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useUser } from "@/firebase";
-import { Megaphone } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 function AdminApprovalsContent() {
   const searchParams = useSearchParams()
   const router = useRouter();
   const db = useFirestore();
   const { user: authUser, isUserLoading } = useUser();
+  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
+  const initialName = searchParams.get('name') || "Jane Doe";
 
   const { toast } = useToast();
   const [pendingUsers, setPendingUsers] = React.useState<PendingUser[]>([]);
+  const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
+  const [userName, setUserName] = React.useState<string>(initialName);
   
-  // This effect redirects if the user is not an admin
   React.useEffect(() => {
     if (!isUserLoading && authUser?.email !== 'admin@nxtwave.co.in') {
       router.push('/login');
@@ -57,7 +66,6 @@ function AdminApprovalsContent() {
   React.useEffect(() => {
     if (!db || authUser?.email !== 'admin@nxtwave.co.in') return;
     
-    // The query for pending users is now allowed by security rules
     const unsub = getPendingUsers(db, (users) => {
       setPendingUsers(users);
     });
@@ -108,15 +116,63 @@ function AdminApprovalsContent() {
         </SidebarHeader>
 
         <SidebarContent>
+           <div className="p-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback className="bg-primary/20 text-primary">
+                    <UserRound className="h-6 w-6" />
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-lg">{userName}</p>
+                  <p className="text-sm text-muted-foreground">{userRole}</p>
+                </div>
+              </div>
+            </div>
+            <SidebarSeparator />
           <SidebarMenu>
-             <SidebarMenuItem>
-              <Link href={`/admin/approvals`} className="w-full">
-                <SidebarMenuButton isActive size="lg">
-                  <CheckCircle />
-                  Approvals
+            <SidebarMenuItem>
+              <Link href={`/dashboard?role=${userRole}&name=${userName}`} className="w-full">
+                <SidebarMenuButton size="lg">
+                  <Home />
+                  Dashboard
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
+                <SidebarMenuButton size="lg">
+                  <Users />
+                  Influencers
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href={`/campaigns?role=${userRole}&name=${userName}`} className="w-full">
+                <SidebarMenuButton size="lg">
+                  <Megaphone />
+                  Campaigns
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
+                <SidebarMenuButton size="lg">
+                  <MessageSquare />
+                  Messaging
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+             {userRole === 'Admin' && (
+              <SidebarMenuItem>
+                <Link href={`/admin/approvals?role=${userRole}&name=${userName}`} className="w-full">
+                  <SidebarMenuButton isActive size="lg">
+                    <CheckCircle />
+                    Approvals
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
