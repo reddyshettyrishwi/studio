@@ -43,23 +43,7 @@ export default function LoginPage() {
       auth.signOut();
     }
   }, [auth]);
-
-  // This effect will automatically redirect a logged-in user.
-  React.useEffect(() => {
-    if (isUserLoading || !authUser || !db) return; // Wait until loading is done and we have a user
-
-    findUserByEmail(db, authUser.email!).then(user => {
-        if (user) {
-             if (user.status === 'Approved') {
-                router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
-            } else if (user.status === 'Pending') {
-                router.push('/pending-approval');
-            }
-            // If rejected, they will just stay on login page after sign in fails.
-        }
-    });
-  }, [isUserLoading, authUser, router, db]);
-
+  
   // When a role is changed, 'Admin' can't sign up.
   React.useEffect(() => {
     if (selectedRole === 'Admin') {
@@ -90,19 +74,15 @@ export default function LoginPage() {
            return;
         }
 
+        // We create the user in Auth, but sign them out immediately.
+        // They need to be approved before they can log in.
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
         await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
+        await auth.signOut();
         
-        // Don't sign out here, let the main useEffect handle redirection.
-        
-        // Manually trigger a check that will lead to redirection
-         findUserByEmail(db, firebaseUser.email!).then(user => {
-            if (user && user.status === 'Pending') {
-                 router.push('/pending-approval');
-            }
-        });
+        router.push('/pending-approval');
 
       } catch (error: any) {
          if (error.code === 'auth/email-already-in-use') {
@@ -121,9 +101,8 @@ export default function LoginPage() {
         // Step 2: Fetch user profile from Firestore
         const userProfile = await findUserByEmail(db, firebaseUser.email!);
 
-        // Step 3: Validate Role
+        // Step 3: Validate Profile, Role, and Status
         if (!userProfile) {
-            // This case is unlikely if they could sign in, but handle it defensively.
             await auth.signOut();
             toast({ variant: "destructive", title: "Sign In Failed", description: "User profile not found." });
             setIsProcessing(false);
@@ -138,20 +117,22 @@ export default function LoginPage() {
         }
 
         if (userProfile.status !== 'Approved') {
-            await auth.signOut();
-            const description = userProfile.status === 'Pending' 
+            const isPending = userProfile.status === 'Pending';
+            const description = isPending
                 ? "This account is pending approval." 
                 : "This account has been rejected.";
+            await auth.signOut();
             toast({ variant: "destructive", title: "Sign In Failed", description });
             setIsProcessing(false);
-            if (userProfile.status === 'Pending') {
+            if (isPending) {
                 router.push('/pending-approval');
             }
             return;
         }
         
-        // If everything is correct, the main useEffect will handle redirection.
-        // The setIsProcessing(false) is handled by the redirect.
+        // Step 4: All checks passed, redirect to the dashboard.
+        router.push(`/dashboard?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
+        
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid email or password." });
          setIsProcessing(false);
@@ -159,15 +140,15 @@ export default function LoginPage() {
     }
   };
 
-  // The login page should only be shown when the user is not logged in.
-  // While checking, it shows a loader. If the user is logged in, the other effect will redirect them.
-  if (isUserLoading || authUser) {
+  // While checking auth state on initial load, show a loader.
+  if (isUserLoading) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       );
   }
+
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -265,5 +246,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
