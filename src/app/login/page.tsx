@@ -35,70 +35,83 @@ export default function LoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
-  const [isProcessing, setIsProcessing] = React.useState(false); // Local processing state for button clicks
+  const [isProcessing, setIsProcessing] = React.useState(true); // Start in a processing state
 
   const isManagerOrExecutive = selectedRole === 'Manager' || selectedRole === 'Executive';
 
+  // Always sign out when the login page is visited.
+  React.useEffect(() => {
+    if (auth) {
+      auth.signOut();
+    }
+  }, [auth]);
+
   // Effect to handle redirection AFTER Firebase has determined the auth state
   React.useEffect(() => {
-    if (!isUserLoading && authUser) {
+    if (isUserLoading) {
+      // Still checking auth state, do nothing
+      return;
+    }
+    
+    setIsProcessing(true); // Start processing when auth state is known
+
+    if (authUser && db) { // User is definitively logged in
         findUserByEmail(db, authUser.email!).then(user => {
             if (user) {
                  if (user.status === 'Approved') {
                     router.push(`/dashboard?role=${user.role}&name=${encodeURIComponent(user.name)}`);
                 } else {
-                    auth.signOut();
+                    auth.signOut(); // Sign out user if not approved
                     router.push('/pending-approval');
                 }
             }
         });
-    }
-  }, [isUserLoading, authUser, router, db, auth]);
+    } else if (auth && db) { // User is not logged in, check for redirect result
+        getRedirectResult(auth)
+          .then(async (result) => {
+            if (result) {
+              const firebaseUser = result.user;
+              if (!firebaseUser.email) {
+                toast({ variant: "destructive", title: "Sign In Failed", description: "Your Google account does not have an email address." });
+                await auth.signOut();
+                setIsProcessing(false);
+                return;
+              }
 
-
-  // Effect to handle the result from Google's redirect
-  React.useEffect(() => {
-    if (auth && db && !authUser) { // Only run if we know auth is ready and user is not yet logged in
-      getRedirectResult(auth)
-        .then(async (result) => {
-          if (result) {
-            setIsProcessing(true); // Show loading indicator
-            const firebaseUser = result.user;
-            if (!firebaseUser.email) {
-              toast({ variant: "destructive", title: "Sign In Failed", description: "Your Google account does not have an email address." });
-              await auth.signOut();
+              const existingUser = await findUserByEmail(db, firebaseUser.email);
+              if (!existingUser) {
+                // This is a new user signing up with Google
+                const newUser = {
+                  id: firebaseUser.uid,
+                  name: firebaseUser.displayName || 'New User',
+                  email: firebaseUser.email,
+                  role: 'Manager' as const,
+                  status: 'Pending' as const,
+                };
+                await addUser(db, newUser);
+                await auth.signOut();
+                router.push('/pending-approval');
+              }
+              // If user exists, the onAuthStateChanged/useUser hook will handle redirection on the next render cycle.
+              // We don't set processing to false here, as the page will re-render with an authUser.
+            } else {
+              // No redirect result, user is genuinely at the login page
               setIsProcessing(false);
-              return;
             }
-
-            const existingUser = await findUserByEmail(db, firebaseUser.email);
-            if (!existingUser) {
-              // This is a new user signing up with Google
-              const newUser = {
-                id: firebaseUser.uid,
-                name: firebaseUser.displayName || 'New User',
-                email: firebaseUser.email,
-                role: 'Manager' as const, // Default role for Google sign-up
-                status: 'Pending' as const,
-              };
-              await addUser(db, newUser);
-              await auth.signOut();
-              router.push('/pending-approval');
-            }
-            // If user exists, the onAuthStateChanged/useUser hook will handle redirection.
-            // No need for else block here, as the top useEffect will catch the new auth state.
-          }
-        })
-        .catch((error) => {
-          toast({
-            variant: "destructive",
-            title: "Google Sign In Failed",
-            description: error.message || "An unexpected error occurred during sign-in.",
+          })
+          .catch((error) => {
+            toast({
+              variant: "destructive",
+              title: "Google Sign In Failed",
+              description: error.message || "An unexpected error occurred during sign-in.",
+            });
+            setIsProcessing(false);
           });
-          setIsProcessing(false);
-        });
+    } else {
+        // Services aren't ready yet, stay in processing state
+        setIsProcessing(true);
     }
-  }, [auth, db, router, toast, authUser]);
+  }, [isUserLoading, authUser, router, db, auth, toast]);
 
 
   const handleAdminSignIn = async () => {
@@ -214,7 +227,7 @@ export default function LoginPage() {
 
   // This is the main loading gate. It shows a full-screen loader while Firebase is initializing
   // or if we are in the middle of a redirect/login process.
-  if (isUserLoading || isProcessing || authUser) {
+  if (isProcessing || isUserLoading) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -351,3 +364,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
