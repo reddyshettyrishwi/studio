@@ -44,10 +44,12 @@ export default function LoginPage() {
       .then(async (result) => {
         if (result) {
           // User has just been redirected from Google Sign-In
+          setIsLoading(true); // Keep loading state active
           const firebaseUser = result.user;
           if (!firebaseUser.email) {
             toast({ variant: "destructive", title: "Sign In Failed", description: "Your Google account does not have an email address." });
             await auth.signOut();
+            setIsLoading(false);
             return;
           }
 
@@ -73,6 +75,8 @@ export default function LoginPage() {
             await auth.signOut();
             router.push('/pending-approval');
           }
+        } else {
+            setIsLoading(false); // Only stop loading if there is no redirect result
         }
       })
       .catch((error) => {
@@ -81,9 +85,7 @@ export default function LoginPage() {
           title: "Google Sign In Failed",
           description: error.message || "An unexpected error occurred during sign-in.",
         });
-      })
-      .finally(() => {
-        setIsLoading(false); // Stop loading after checking for redirect
+        setIsLoading(false);
       });
   }, [auth, db, router, selectedRole, toast]);
 
@@ -241,14 +243,12 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {isLoading && (
+          {isLoading ? (
             <div className="flex justify-center items-center p-8">
               <Loader2 className="animate-spin" />
               <p className="ml-2">Please wait...</p>
             </div>
-          )}
-
-          {!isLoading && (
+          ) : (
             <>
               {isSigningUp && isManagerOrExecutive && (
                 <div className="grid gap-2">
@@ -355,5 +355,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
