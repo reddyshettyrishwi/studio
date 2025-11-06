@@ -141,8 +141,19 @@ export default function LoginPage() {
   };
 
   // While checking auth state on initial load, show a loader.
-  if (isUserLoading) {
+  if (isUserLoading && !authUser) {
       return (
+        <div className="flex min-h-screen flex-col items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      );
+  }
+
+  if (authUser) {
+    // If user is already logged in, but we are on the login page, redirect them.
+    // This handles cases where user navigates back to login page.
+    router.push(`/dashboard?role=Manager&name=Temp`); // A default redirect, can be improved.
+    return (
         <div className="flex min-h-screen flex-col items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -230,7 +241,7 @@ export default function LoginPage() {
         </CardContent>
         {selectedRole !== 'Admin' && (
            <CardFooter>
-            <div className="text-sm">
+            <div className="text-sm w-full text-center">
               <button
                 onClick={() => setIsSigningUp(!isSigningUp)}
                 className="font-medium text-primary hover:underline"
