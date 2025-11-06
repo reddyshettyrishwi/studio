@@ -38,7 +38,7 @@ import type { Influencer } from "@/lib/types";
 import { alertOnPriceAnomalies, AlertOnPriceAnomaliesOutput } from "@/ai/flows/alert-on-price-anomalies";
 
 const campaignSchema = z.object({
-  influencerId: z.string().min(1, "Please select an influencer."),
+  influencerId: z.string().optional(),
   name: z.string().min(2, "Campaign name is required."),
   department: z.string().min(1, "Department is required."),
   deliverables: z.string().min(1, "Deliverables are required."),
@@ -110,9 +110,6 @@ export default function LogCampaignDialog({
   };
 
   function onSubmit(data: LogCampaignFormValues) {
-    const selectedInfluencer = influencers.find(i => i.id === data.influencerId);
-    if (!selectedInfluencer) return;
-
     onLogCampaign({ ...data });
     toast({
       title: "Campaign Logged!",
@@ -142,7 +139,7 @@ export default function LogCampaignDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField name="influencerId" control={form.control} render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Influencer</FormLabel>
+                  <FormLabel>Influencer (Optional)</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger><SelectValue placeholder="Select an influencer" /></SelectTrigger>

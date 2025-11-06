@@ -129,7 +129,8 @@ function CampaignsContent() {
     );
   }, [campaigns, searchQuery]);
 
-  const getInfluencerById = (id: string) => {
+  const getInfluencerById = (id?: string) => {
+    if (!id) return undefined;
     return influencers.find(influencer => influencer.id === id);
   }
   

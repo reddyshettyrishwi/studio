@@ -37,7 +37,7 @@ export type Campaign = {
   deliverables: string;
   date: string;
   pricePaid: number;
-  influencerId: string;
+  influencerId?: string;
   approvalStatus: ApprovalStatus;
 };
 
