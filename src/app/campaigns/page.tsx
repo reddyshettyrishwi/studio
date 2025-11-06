@@ -317,11 +317,6 @@ function CampaignsContent() {
                                     Rejected <StatusCircle status="Rejected" />
                                   </div>
                                 </SelectItem>
-                                <SelectItem value="Completed">
-                                   <div className="flex items-center gap-2">
-                                    Completed <StatusCircle status="Completed" />
-                                  </div>
-                                </SelectItem>
                               </SelectContent>
                             </Select>
                           ) : (
