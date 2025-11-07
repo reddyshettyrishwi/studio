@@ -54,6 +54,8 @@ export const addUser = async (db: Firestore, user: Omit<User, 'password'>) => {
         email: user.email,
         role: user.role,
         status: status,
+        mobile: user.mobile,
+        pan: user.pan,
     };
 
     await setDoc(userRef, newUser, { merge: true }); // Use merge to avoid overwriting if doc exists
@@ -72,11 +74,22 @@ export const findUserByEmail = async (db: Firestore, email: string): Promise<Use
     return { id: userDoc.id, ...userDoc.data() } as User;
 };
 
+export const findUserByMobileOrPan = async (db: Firestore, mobile: string, pan: string): Promise<User | undefined> => {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, or(where('mobile', '==', mobile), where('pan', '==', pan)));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        return undefined;
+    }
+    const userDoc = querySnapshot.docs[0];
+    return { id: userDoc.id, ...userDoc.data() } as User;
+};
+
+
 export const getPendingUsers = (db: Firestore, callback: (users: PendingUser[]) => void) => {
     const usersCol = collection(db, 'users');
     const q = query(usersCol, where("status", "==", "Pending"));
     
-    // This onSnapshot will now work because of the new security rules.
     return onSnapshot(q, (snapshot) => {
         const pendingUsers = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -91,8 +104,7 @@ export const getPendingUsers = (db: Firestore, callback: (users: PendingUser[]) 
         callback(pendingUsers);
     }, (error) => {
         console.error("Error fetching pending users:", error);
-        // You might want to handle this error in the UI
-        callback([]); // Return empty array on error
+        callback([]);
     });
 };
 
@@ -102,8 +114,6 @@ export const approveUser = async (db: Firestore, userId: string) => {
 };
 
 export const rejectUser = async (db: Firestore, userId: string) => {
-    // Instead of deleting, we could also set status to 'Rejected'
-    // For now, we delete as per the original logic.
     const userRef = doc(db, 'users', userId);
     await deleteDoc(userRef);
 };
@@ -141,5 +151,4 @@ export const updateCampaignStatus = async (db: Firestore, campaignId: string, st
   const campaignRef = doc(db, 'campaigns', campaignId);
   await setDoc(campaignRef, { approvalStatus: status }, { merge: true });
 };
-
     
