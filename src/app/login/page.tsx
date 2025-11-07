@@ -18,7 +18,7 @@ import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addUser, findUserByMobileOrPan, getUserProfile, findUserByEmail } from "@/lib/data";
+import { addUser, getUserProfile, findUserByMobileOrPan } from "@/lib/data";
 import { useAuth, useFirestore, useUser } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Chrome } from "lucide-react";
@@ -41,12 +41,6 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
   const [isProcessing, setIsProcessing] = React.useState(false);
 
-  React.useEffect(() => {
-    if (auth) {
-      auth.signOut();
-    }
-  }, [auth]);
-  
   React.useEffect(() => {
     if (selectedRole === 'Admin') {
       setIsSigningUp(false);
@@ -97,6 +91,13 @@ export default function LoginPage() {
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
+
+        // Admin special case
+        if (firebaseUser.email === 'admin@nxtwave.co.in') {
+          router.push(`/admin/approvals?role=Admin&name=Admin`);
+          setIsProcessing(false);
+          return;
+        }
         
         const userProfile = await getUserProfile(db, firebaseUser.uid);
 
@@ -115,11 +116,7 @@ export default function LoginPage() {
             }
         } else {
             // Success!
-            if (userProfile.role === 'Admin') {
-                router.push(`/admin/approvals?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
-            } else {
-                router.push(`/dashboard?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
-            }
+            router.push(`/dashboard?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
         }
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid email or password." });
@@ -145,15 +142,16 @@ export default function LoginPage() {
         const userCredential = await signInWithPopup(auth, provider);
         const firebaseUser = userCredential.user;
 
-        const existingUser = await findUserByEmail(db, firebaseUser.email!);
+        const userProfile = await getUserProfile(db, firebaseUser.uid);
 
-        if (existingUser) { // User exists, check their status
-            if (existingUser.role !== 'Executive') {
+        if (userProfile) { // User exists, check their status
+            if (userProfile.role !== 'Executive') {
                  await auth.signOut();
                  toast({ variant: "destructive", title: "Sign In Failed", description: "This Google account is not registered as an Executive." });
-            } else if (existingUser.status === 'Approved') {
-                router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
-            } else if (existingUser.status === 'Pending') {
+            } else if (userProfile.status === 'Approved') {
+                router.push(`/dashboard?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
+            } else if (userProfile.status === 'Pending') {
+                await auth.signOut();
                 router.push('/pending-approval');
             } else { // Rejected
                 await auth.signOut();
@@ -325,3 +323,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
