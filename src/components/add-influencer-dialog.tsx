@@ -113,19 +113,11 @@ export default function AddInfluencerDialog({
   
   const { control, watch } = form;
 
-  React.useEffect(() => {
-    const subscription = watch((value, { name }) => {
-        if (name === 'mobile' || name === 'pan') {
-            handleDuplicateCheck(value.mobile, value.pan);
-        }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch]);
-
   const debounceTimeout = React.useRef<NodeJS.Timeout>();
-  const handleDuplicateCheck = (mobile?: string, pan?: string) => {
+
+  const handleDuplicateCheck = React.useCallback((mobile?: string, pan?: string) => {
     clearTimeout(debounceTimeout.current);
-    if (mobile && pan) {
+    if (mobile && mobile.length >= 10 && pan && pan.length > 5) {
         debounceTimeout.current = setTimeout(async () => {
             setIsDetecting(true);
             setDuplicateResult(null);
@@ -146,7 +138,16 @@ export default function AddInfluencerDialog({
             }
         }, 1000);
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    const subscription = watch((value, { name }) => {
+        if (name === 'mobile' || name === 'pan') {
+            handleDuplicateCheck(value.mobile, value.pan);
+        }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, handleDuplicateCheck]);
 
 
   function onSubmit(data: AddInfluencerFormValues) {
@@ -227,6 +228,18 @@ export default function AddInfluencerDialog({
                 )}
               />
             </div>
+            
+            {(isDetecting || duplicateResult) && (
+              <Alert variant={duplicateResult ? "destructive" : "default"}>
+                {isDetecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+                <AlertTitle>{isDetecting ? "Checking for duplicates..." : "Potential Duplicate Found!"}</AlertTitle>
+                <AlertDescription>
+                  {isDetecting
+                    ? "Our AI is checking if this influencer already exists in the repository."
+                    : `This profile might be a duplicate with ${Math.round((duplicateResult?.confidence || 0) * 100)}% confidence. Please review before proceeding.`}
+                </AlertDescription>
+              </Alert>
+            )}
             
             <Separator />
             <div className="space-y-2">
@@ -403,18 +416,6 @@ export default function AddInfluencerDialog({
                 )}
               />
             </div>
-
-            {(isDetecting || duplicateResult) && (
-              <Alert variant={duplicateResult ? "destructive" : "default"}>
-                {isDetecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
-                <AlertTitle>{isDetecting ? "Checking for duplicates..." : "Potential Duplicate Found!"}</AlertTitle>
-                <AlertDescription>
-                  {isDetecting
-                    ? "Our AI is checking if this influencer already exists in the repository."
-                    : `This profile might be a duplicate with ${Math.round((duplicateResult?.confidence || 0) * 100)}% confidence. Please review before proceeding.`}
-                </AlertDescription>
-              </Alert>
-            )}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
