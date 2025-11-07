@@ -123,6 +123,24 @@ export const rejectUser = async (db: Firestore, userId: string) => {
 // =================================================================
 
 export const addInfluencer = async (db: Firestore, influencerData: Omit<Influencer, 'id' | 'avatar'>) => {
+  const { mobile, pan } = influencerData;
+  const influencersRef = collection(db, "influencers");
+
+  // Check for duplicate mobile or PAN
+  const duplicateQuery = query(influencersRef, or(where("mobile", "==", mobile), where("pan", "==", pan)));
+  const duplicateSnapshot = await getDocs(duplicateQuery);
+
+  if (!duplicateSnapshot.empty) {
+      const existingDoc = duplicateSnapshot.docs[0].data();
+      if (existingDoc.mobile === mobile) {
+          throw new Error("An influencer with this mobile number already exists.");
+      }
+      if (existingDoc.pan === pan) {
+          throw new Error("An influencer with this PAN ID already exists.");
+      }
+  }
+  
+  // If no duplicates, add the new influencer
   const influencerToAdd = {
     ...influencerData,
     avatar: `https://picsum.photos/seed/${Date.now()}/100/100`,

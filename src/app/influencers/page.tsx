@@ -175,9 +175,22 @@ function InfluencersContent() {
     });
   }, [influencers, searchQuery, filters]);
 
-  const addInfluencer = async (newInfluencer: Omit<Influencer, 'id' | 'avatar'>) => {
+  const addInfluencer = async (newInfluencer: Omit<Influencer, "id" | "avatar">) => {
     if (!db) return;
-    await addInfluencerToDb(db, newInfluencer);
+     try {
+      await addInfluencerToDb(db, newInfluencer);
+      toast({
+        title: "Success!",
+        description: `${newInfluencer.name} has been added to the repository.`,
+      });
+      setAddInfluencerOpen(false); // Close dialog on success
+    } catch (error: any) {
+      toast({
+        title: "Duplicate Found",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
   
   const handleDeleteInfluencer = async () => {
