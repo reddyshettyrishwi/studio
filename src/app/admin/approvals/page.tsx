@@ -64,7 +64,7 @@ function AdminApprovalsContent() {
   }, [authUser, isUserLoading, router]);
 
   React.useEffect(() => {
-    if (!db || authUser?.email !== 'admin@nxtwave.co.in') return;
+    if (!db || !authUser || authUser.email !== 'admin@nxtwave.co.in') return;
     
     const unsub = getPendingUsers(db, (users) => {
       setPendingUsers(users);
@@ -73,7 +73,7 @@ function AdminApprovalsContent() {
     return () => unsub();
   }, [db, authUser]);
 
-  if (isUserLoading || authUser?.email !== 'admin@nxtwave.co.in') {
+  if (isUserLoading || !authUser || authUser.email !== 'admin@nxtwave.co.in') {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center">
            <p>Loading...</p>
@@ -245,5 +245,3 @@ export default function AdminApprovalsPage() {
     </React.Suspense>
   );
 }
-
-    

@@ -79,7 +79,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
@@ -102,6 +102,7 @@ function InfluencersContent() {
   const initialName = searchParams.get('name') || "Jane Doe";
 
   const db = useFirestore();
+  const { user: authUser } = useUser();
   const { toast } = useToast();
   const [initialInfluencers, setInitialInfluencers] = React.useState<Influencer[]>([]);
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
@@ -124,7 +125,7 @@ function InfluencersContent() {
   const [selectedInfluencer, setSelectedInfluencer] = React.useState<Influencer | null>(null);
 
   React.useEffect(() => {
-    if (!db) return;
+    if (!db || !authUser) return;
     const unsub = onSnapshot(collection(db, "influencers"), (snapshot) => {
       const fetchedInfluencers = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -142,7 +143,7 @@ function InfluencersContent() {
       setInitialInfluencers(fetchedInfluencers);
     });
     return () => unsub();
-  }, [db]);
+  }, [db, authUser]);
 
 
   const categories = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.category))], [initialInfluencers]);
@@ -516,6 +517,3 @@ export default function InfluencersPage() {
       </React.Suspense>
     );
   }
-
-    
-

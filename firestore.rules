@@ -13,36 +13,26 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Note: This Admin check is specific and should be used carefully.
       return request.auth.token.email == 'admin@nxtwave.co.in';
     }
 
     match /users/{userId} {
-      // Admins can get any user profile. Users can only get their own.
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
-      // Only Admins should be able to list all users.
       allow list: if isSignedIn() && isAdmin();
-      // A user can create their own user document.
       allow create: if isSignedIn() && isOwner(userId);
-      // Only an Admin can update user documents (e.g. change roles).
-      allow update: if isSignedIn() && isAdmin();
-      // Only an Admin can delete users.
+      allow update: if isSignedIn() && (isOwner(userId) || isAdmin());
       allow delete: if isSignedIn() && isAdmin();
     }
 
     match /influencers/{influencerId} {
-      // Any authenticated user can read or write to the influencers collection.
-      // App logic should handle role-based UI differences.
       allow read, write: if isSignedIn();
     }
 
     match /campaigns/{campaignId} {
-      // Any authenticated user can read or write to the campaigns collection.
       allow read, write: if isSignedIn();
     }
 
     match /agencies/{agencyId} {
-      // Any authenticated user can read or write to the agencies collection.
       allow read, write: if isSignedIn();
     }
   }

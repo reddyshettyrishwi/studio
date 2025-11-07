@@ -39,7 +39,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
@@ -63,13 +63,14 @@ function DashboardContent() {
   const initialName = searchParams.get('name') || "Jane Doe";
 
   const db = useFirestore();
+  const { user: authUser } = useUser();
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
   const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
   const [userName, setUserName] = React.useState<string>(initialName);
   
   React.useEffect(() => {
-    if (!db) return;
+    if (!db || !authUser) return;
     const unsubCampaigns = onSnapshot(collection(db, "campaigns"), (snapshot) => {
       const fetchedCampaigns = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -94,7 +95,7 @@ function DashboardContent() {
       unsubCampaigns();
       unsubInfluencers();
     };
-  }, [db]);
+  }, [db, authUser]);
 
 
   // Analytics data

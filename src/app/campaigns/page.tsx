@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import LogCampaignDialog from "@/components/log-campaign-dialog";
-import { useFirestore } from "@/firebase";
+import { useFirestore, useUser } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
@@ -86,6 +86,7 @@ function CampaignsContent() {
   const initialName = searchParams.get('name') || "Jane Doe";
 
   const db = useFirestore();
+  const { user: authUser } = useUser();
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -95,7 +96,7 @@ function CampaignsContent() {
 
 
   React.useEffect(() => {
-    if (!db) return;
+    if (!db || !authUser) return;
     const unsubCampaigns = onSnapshot(collection(db, "campaigns"), (snapshot) => {
       const fetchedCampaigns = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -120,7 +121,7 @@ function CampaignsContent() {
       unsubCampaigns();
       unsubInfluencers();
     };
-  }, [db]);
+  }, [db, authUser]);
 
 
   const filteredCampaigns = React.useMemo(() => {
