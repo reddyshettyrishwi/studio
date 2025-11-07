@@ -1,136 +1,18 @@
-
 "use client";
 
-import Link from "next/link";
 import * as React from "react";
-import { Megaphone, Database, Briefcase, BrainCircuit } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/firebase";
+import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
-  const auth = useAuth();
+  const router = useRouter();
 
   React.useEffect(() => {
-    if (auth) {
-      auth.signOut();
-    }
-  }, [auth]);
+    router.push('/login');
+  }, [router]);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="px-4 lg:px-6 h-16 flex items-center bg-background/80 backdrop-blur-sm fixed w-full z-20 top-0">
-        <Link href="#" className="flex items-center justify-center" prefetch={false}>
-          <Megaphone className="h-6 w-6 text-primary" />
-          <span className="ml-2 text-xl font-headline font-semibold text-foreground">InfluenceWise</span>
-        </Link>
-        <nav className="ml-auto flex gap-4 sm:gap-6">
-          <Link
-            href="/login"
-            className="text-sm font-medium hover:underline underline-offset-4"
-            prefetch={false}
-          >
-            <Button>Login</Button>
-          </Link>
-           <Link
-            href="/login"
-            className="text-sm font-medium hover:underline underline-offset-4"
-            prefetch={false}
-          >
-            <Button variant="outline">Sign Up</Button>
-          </Link>
-        </nav>
-      </header>
-      <main className="flex-1">
-        <section className="w-full pt-24 md:pt-32 lg:pt-40 bg-gradient-radial-spread">
-          <div className="px-4 md:px-6 space-y-10 xl:space-y-16">
-            <div className="grid max-w-[1300px] mx-auto gap-4 px-4 sm:px-6 md:px-10">
-              <div className="text-center">
-                <h1 className="lg:leading-tighter text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl xl:text-[3.4rem] 2xl:text-[3.75rem] font-headline">
-                  Unify Your Influence. The All-In-One Platform for Brands and Creators.
-                </h1>
-                <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl mt-4">
-                  InfluenceWise provides a centralized hub for managing influencers, tracking campaigns, and gaining data-driven insights. Eliminate spreadsheets and streamline your workflow.
-                </p>
-                <div className="space-x-4 mt-6">
-                  <Link
-                    href="/login"
-                    className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                    prefetch={false}
-                  >
-                    Get Started
-                  </Link>
-                  <Link
-                    href="#"
-                    className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background/50 px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                    prefetch={false}
-                  >
-                    Learn More
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container space-y-12 px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <div className="inline-block rounded-lg bg-muted px-3 py-1 text-sm">Key Features</div>
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">Why Choose InfluenceWise?</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Discover the tools and features that make InfluenceWise the ultimate platform for influencer marketing.
-                </p>
-              </div>
-            </div>
-            <div className="mx-auto grid items-start gap-8 sm:max-w-4xl sm:grid-cols-2 md:gap-12 lg:max-w-5xl lg:grid-cols-3">
-              <div className="grid gap-2 p-4 rounded-lg border bg-card/50">
-                 <div className="flex items-center gap-2">
-                    <div className="bg-primary/10 text-primary p-2 rounded-md">
-                      <Database className="h-6 w-6"/>
-                    </div>
-                    <h3 className="text-lg font-bold">Centralized CRM</h3>
-                 </div>
-                <p className="text-sm text-muted-foreground">
-                 Maintain a single, verified repository of influencer profiles. Track contacts, past campaigns, and performance data in one place.
-                </p>
-              </div>
-              <div className="grid gap-2 p-4 rounded-lg border bg-card/50">
-                 <div className="flex items-center gap-2">
-                    <div className="bg-primary/10 text-primary p-2 rounded-md">
-                      <Briefcase className="h-6 w-6"/>
-                    </div>
-                    <h3 className="text-lg font-bold">Campaign Management</h3>
-                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Manage campaigns, approvals, and communication all in one place, streamlining your entire workflow from start to finish.
-                </p>
-              </div>
-              <div className="grid gap-2 p-4 rounded-lg border bg-card/50">
-                 <div className="flex items-center gap-2">
-                    <div className="bg-primary/10 text-primary p-2 rounded-md">
-                      <BrainCircuit className="h-6 w-6"/>
-                    </div>
-                    <h3 className="text-lg font-bold">AI-Powered Insights</h3>
-                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Leverage AI to detect duplicate profiles and prevent pricing anomalies, ensuring fair and efficient campaigns.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">&copy; 2024 InfluenceWise. All rights reserved.</p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          <Link href="#" className="text-xs hover:underline underline-offset-4" prefetch={false}>
-            Terms of Service
-          </Link>
-          <Link href="#" className="text-xs hover:underline underline-offset-4" prefetch={false}>
-            Privacy
-          </Link>
-        </nav>
-      </footer>
+    <div className="flex min-h-screen items-center justify-center">
+      <p>Loading...</p>
     </div>
   );
 }
