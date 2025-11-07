@@ -140,26 +140,22 @@ export default function LoginPage() {
     }
   };
 
+  React.useEffect(() => {
+    // If user is already logged in (e.g. from a previous session or by using the back button), redirect them.
+    // This is now safe inside a useEffect.
+    if (authUser) {
+      router.push(`/dashboard?role=Manager&name=Temp`); // A default redirect, can be improved.
+    }
+  }, [authUser, router]);
+
   // While checking auth state on initial load, show a loader.
-  if (isUserLoading && !authUser) {
+  if (isUserLoading || authUser) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       );
   }
-
-  if (authUser) {
-    // If user is already logged in, but we are on the login page, redirect them.
-    // This handles cases where user navigates back to login page.
-    router.push(`/dashboard?role=Manager&name=Temp`); // A default redirect, can be improved.
-    return (
-        <div className="flex min-h-screen flex-col items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      );
-  }
-
 
   return (
     <div className="flex min-h-screen items-center justify-center">
