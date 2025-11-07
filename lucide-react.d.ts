@@ -28,6 +28,9 @@ declare module 'lucide-react' {
     export const MessageSquare: FC<SVGProps<SVGSVGElement>>;
     export const CalendarIcon: FC<SVGProps<SVGSVGElement>>;
     export const ArrowRight: FC<SVGProps<SVGSVGElement>>;
+    export const Database: FC<SVGProps<SVGSVGElement>>;
+    export const Briefcase: FC<SVGProps<SVGSVGElement>>;
+    export const BrainCircuit: FC<SVGProps<SVGSVGElement>>;
     // Add other icons that you use here...
   }
   
