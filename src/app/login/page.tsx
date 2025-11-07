@@ -122,7 +122,7 @@ export default function LoginPage() {
             }
         }
       } catch (error: any) {
-         // This catch block now specifically handles errors from signInWithEmailAndPassword (e.g., wrong password)
+         // This catch block now specifically handles errors from signInWithEmailAndPassword (e.g., wrong password, user not found)
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid email or password." });
       } finally {
         setIsProcessing(false);
@@ -260,6 +260,7 @@ export default function LoginPage() {
     </div>
   );
 }
+    
     
     
     
