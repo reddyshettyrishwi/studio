@@ -69,29 +69,18 @@ export default function LoginPage() {
         return;
       }
       try {
-        // Step 1: Check for duplicate email, mobile, or PAN
-        const existingUserByEmail = await findUserByEmail(db, email);
-        if (existingUserByEmail) {
-           toast({ variant: "destructive", title: "Sign Up Failed", description: "An account with this email already exists." });
-           setIsProcessing(false);
-           return;
-        }
-
         const existingUserByMobileOrPan = await findUserByMobileOrPan(db, mobile, pan);
         if (existingUserByMobileOrPan) {
             toast({ variant: "destructive", title: "Sign Up Failed", description: "User already exists with this Mobile or PAN." });
             setIsProcessing(false);
-            return; // STOP EXECUTION
+            return;
         }
 
-        // Step 2: Create user in Auth (if no duplicates found)
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
-        // Step 3: Add user to Firestore
         await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending', mobile, pan });
         
-        // Step 4: Sign out and redirect
         await auth.signOut();
         router.push('/pending-approval');
 
@@ -106,49 +95,30 @@ export default function LoginPage() {
       }
     } else { // SIGN IN (All Roles)
       try {
-        // Step 1: Authenticate with Firebase Auth
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
 
-        // Step 2: Fetch user profile from Firestore
         const userProfile = await findUserByEmail(db, firebaseUser.email!);
 
-        // Step 3: Validate Profile, Role, and Status
         if (!userProfile) {
             await auth.signOut();
             toast({ variant: "destructive", title: "Sign In Failed", description: "User profile not found." });
-            setIsProcessing(false);
-            return;
-        }
-
-        if (userProfile.role !== selectedRole) {
+        } else if (userProfile.role !== selectedRole) {
             await auth.signOut();
             toast({ variant: "destructive", title: "Sign In Failed", description: "Incorrect role selected for this account." });
-            setIsProcessing(false);
-            return;
-        }
-
-        if (userProfile.status !== 'Approved') {
+        } else if (userProfile.status !== 'Approved') {
             const isPending = userProfile.status === 'Pending';
-            const description = isPending
-                ? "This account is pending approval." 
-                : "This account has been rejected.";
+            const description = isPending ? "This account is pending approval." : "This account has been rejected.";
             await auth.signOut();
             toast({ variant: "destructive", title: "Sign In Failed", description });
-            setIsProcessing(false);
-            if (isPending) {
-                router.push('/pending-approval');
-            }
-            return;
-        }
-        
-        // Step 4: All checks passed, redirect to the dashboard.
-        if (userProfile.role === 'Admin') {
-            router.push(`/admin/approvals?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
+            if (isPending) router.push('/pending-approval');
         } else {
-            router.push(`/dashboard?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
+            if (userProfile.role === 'Admin') {
+                router.push(`/admin/approvals?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
+            } else {
+                router.push(`/dashboard?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
+            }
         }
-        
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid email or password." });
       } finally {
@@ -287,4 +257,5 @@ export default function LoginPage() {
     </div>
   );
 }
+    
     
