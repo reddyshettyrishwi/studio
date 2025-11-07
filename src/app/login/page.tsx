@@ -98,11 +98,12 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
 
+        // At this point, Firebase auth was successful. Now check our database.
         const userProfile = await findUserByEmail(db, firebaseUser.email!);
 
         if (!userProfile) {
             await auth.signOut();
-            toast({ variant: "destructive", title: "Sign In Failed", description: "User profile not found." });
+            toast({ variant: "destructive", title: "Sign In Failed", description: "User profile not found in database." });
         } else if (userProfile.role !== selectedRole) {
             await auth.signOut();
             toast({ variant: "destructive", title: "Sign In Failed", description: "Incorrect role selected for this account." });
@@ -113,6 +114,7 @@ export default function LoginPage() {
             toast({ variant: "destructive", title: "Sign In Failed", description });
             if (isPending) router.push('/pending-approval');
         } else {
+            // Success! Navigate to the correct page.
             if (userProfile.role === 'Admin') {
                 router.push(`/admin/approvals?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
             } else {
@@ -120,6 +122,7 @@ export default function LoginPage() {
             }
         }
       } catch (error: any) {
+         // This catch block now specifically handles errors from signInWithEmailAndPassword (e.g., wrong password)
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid email or password." });
       } finally {
         setIsProcessing(false);
@@ -257,5 +260,6 @@ export default function LoginPage() {
     </div>
   );
 }
+    
     
     
