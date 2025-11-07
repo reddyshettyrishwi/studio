@@ -3,22 +3,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Megaphone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/firebase";
 
 export default function LandingPage() {
-  const router = useRouter();
-  const auth = useAuth();
-
-  React.useEffect(() => {
-    // Ensure any previous session is cleared when visiting the landing page.
-    if (auth) {
-      auth.signOut();
-    }
-  }, [auth]);
-
   return (
     <div className="flex min-h-screen flex-col items-center justify-center text-center p-4">
       <div className="flex flex-col items-center gap-6">
