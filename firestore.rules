@@ -3,8 +3,50 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // ANY authenticated user can CREATE their own user document during sign-up.
+      // This is necessary for the registration flow.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // An authenticated user can READ their own document.
+      // This is required to check role and status after login.
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // ONLY an Admin can UPDATE a user document (e.g., to approve status).
+      // ONLY an Admin can DELETE a user document (e.g., to reject a request).
+      allow update, delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      
+      // ONLY an Admin can LIST all users (for the approvals page).
+      allow list: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    // Rules for influencers, campaigns, etc.
+    // Allow any authenticated user (who is approved) to read influencers and campaigns
+    // Allow only Managers or Admins to create, update, delete
+    function isApprovedUser() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'Approved';
+    }
+
+    function isManagerOrAdmin() {
+      let userRole = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+      return userRole == 'Manager' || userRole == 'Admin';
+    }
+
+    match /influencers/{influencerId} {
+      allow read, list: if isApprovedUser();
+      allow create, update, delete: if isApprovedUser() && isManagerOrAdmin();
+    }
+
+    match /campaigns/{campaignId} {
+      allow read, list: if isApprovedUser();
+      allow create, update, delete: if isApprovedUser() && isManagerOrAdmin();
     }
   }
 }
