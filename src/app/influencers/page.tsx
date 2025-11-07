@@ -349,145 +349,135 @@ function InfluencersContent() {
                 </div>
              </div>
 
-            {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredInfluencers.map(influencer => (
-                  <Dialog key={influencer.id} onOpenChange={(open) => { if (!open) setSelectedInfluencer(null)}}>
-                    <DialogTrigger asChild>
-                      <Card className="cursor-pointer transition-all hover:shadow-glow-primary" onClick={() => setSelectedInfluencer(influencer)}>
-                        <CardHeader>
-                          <div className="flex flex-row items-center gap-4">
-                            <Avatar className="h-12 w-12">
-                              <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person portrait" />
-                              <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <CardTitle className="font-headline text-lg">{influencer.name}</CardTitle>
-                              <p className="text-sm text-muted-foreground">{influencer.platforms.map(p => `@${p.handle}`).join(', ')}</p>
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </Card>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-lg bg-card/80 backdrop-blur-sm">
-                      <DialogHeader>
-                         <div className="flex flex-row items-center gap-4">
-                            <Avatar className="h-16 w-16">
+            <AlertDialog open={isConfirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+                {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredInfluencers.map(influencer => (
+                    <Dialog key={influencer.id} onOpenChange={(open) => { if (!open) setSelectedInfluencer(null)}}>
+                        <DialogTrigger asChild>
+                        <Card className="cursor-pointer transition-all hover:shadow-glow-primary" onClick={() => setSelectedInfluencer(influencer)}>
+                            <CardHeader>
+                            <div className="flex flex-row items-center gap-4">
+                                <Avatar className="h-12 w-12">
                                 <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person portrait" />
                                 <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <DialogTitle className="font-headline text-2xl">{influencer.name}</DialogTitle>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {influencer.platforms.map(p => (
-                                    <div key={p.platform} className="flex items-center gap-1 text-sm text-muted-foreground">
-                                       {platformIcons[p.platform]}
-                                       <span>@{p.handle}</span>
+                                </Avatar>
+                                <div>
+                                <CardTitle className="font-headline text-lg">{influencer.name}</CardTitle>
+                                <p className="text-sm text-muted-foreground">{influencer.platforms.map(p => `@${p.handle}`).join(', ')}</p>
+                                </div>
+                            </div>
+                            </CardHeader>
+                        </Card>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-lg bg-card/80 backdrop-blur-sm">
+                        <DialogHeader>
+                            <div className="flex flex-row items-center gap-4">
+                                <Avatar className="h-16 w-16">
+                                    <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person portrait" />
+                                    <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <DialogTitle className="font-headline text-2xl">{influencer.name}</DialogTitle>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                    {influencer.platforms.map(p => (
+                                        <div key={p.platform} className="flex items-center gap-1 text-sm text-muted-foreground">
+                                        {platformIcons[p.platform]}
+                                        <span>@{p.handle}</span>
+                                        </div>
+                                    ))}
                                     </div>
-                                  ))}
                                 </div>
                             </div>
-                        </div>
-                      </DialogHeader>
-                        <div className="pt-4 space-y-4">
-                            <div className="flex items-center gap-2 text-sm flex-wrap">
-                                <Badge variant="secondary">{influencer.category}</Badge>
-                                <Badge variant="outline">{influencer.language}</Badge>
-                            </div>
-                            <div className="space-y-2 text-sm">
-                              {influencer.platforms.map(p => (
-                                <div key={p.platform}>
-                                  <p className="font-bold flex items-center gap-2">{platformIcons[p.platform]} {p.channelName}</p>
+                        </DialogHeader>
+                            <div className="pt-4 space-y-4">
+                                <div className="flex items-center gap-2 text-sm flex-wrap">
+                                    <Badge variant="secondary">{influencer.category}</Badge>
+                                    <Badge variant="outline">{influencer.language}</Badge>
                                 </div>
-                              ))}
+                                <div className="space-y-2 text-sm">
+                                {influencer.platforms.map(p => (
+                                    <div key={p.platform}>
+                                    <p className="font-bold flex items-center gap-2">{platformIcons[p.platform]} {p.channelName}</p>
+                                    </div>
+                                ))}
+                                </div>
+                                <div className="space-y-2 text-sm">
+                                <p><strong className="font-bold">Last Price Paid:</strong> {influencer.lastPricePaid ? `₹${influencer.lastPricePaid.toLocaleString('en-IN')}` : 'N/A'}</p>
+                                <div className="flex items-center">
+                                    <strong className="font-bold mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
+                                    {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
+                                </div>
+                                <p><strong className="font-bold">Email:</strong> {maskSensitiveData(influencer.email, userRole)}</p>
+                                <p><strong className="font-bold">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
+                                </div>
                             </div>
-                            <div className="space-y-2 text-sm">
-                              <p><strong className="font-bold">Last Price Paid:</strong> {influencer.lastPricePaid ? `₹${influencer.lastPricePaid.toLocaleString('en-IN')}` : 'N/A'}</p>
-                              <div className="flex items-center">
-                                <strong className="font-bold mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
-                                {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
-                              </div>
-                              <p><strong className="font-bold">Email:</strong> {maskSensitiveData(influencer.email, userRole)}</p>
-                              <p><strong className="font-bold">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button variant="outline">Close</Button>
-                            </DialogClose>
-                             <AlertDialogTrigger asChild>
-                                <Button variant="destructive">Delete Influencer</Button>
-                            </AlertDialogTrigger>
-                        </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                ))}
-              </div>
-            ) : (
-                <Card>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Channels</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead>Last Price Paid</TableHead>
-                                <TableHead>Contact</TableHead>
-                                <TableHead>Last Promo</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredInfluencers.map(influencer => (
-                              <TableRow key={influencer.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="h-9 w-9">
-                                                <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person face" />
-                                                <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="font-medium">{influencer.name}</div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col gap-2">
-                                            {influencer.platforms.map(p => (
-                                                <div key={p.platform} className="flex items-center gap-2">
-                                                    {platformIcons[p.platform]}
-                                                    <div>
-                                                        <div className="font-medium">{p.channelName}</div>
-                                                        <span className="text-xs text-muted-foreground">@{p.handle}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>
-                                    <TableCell>{influencer.lastPricePaid ? `₹${influencer.lastPricePaid.toLocaleString('en-IN')}` : 'N/A'}</TableCell>
-                                    <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center">
-                                        {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
-                                        {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
-                                      </div>
-                                    </TableCell>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button variant="outline">Close</Button>
+                                </DialogClose>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive">Delete Influencer</Button>
+                                </AlertDialogTrigger>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                    ))}
+                </div>
+                ) : (
+                    <Card>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Channels</TableHead>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead>Last Price Paid</TableHead>
+                                    <TableHead>Contact</TableHead>
+                                    <TableHead>Last Promo</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </Card>
-            )}
+                            </TableHeader>
+                            <TableBody>
+                                {filteredInfluencers.map(influencer => (
+                                <TableRow key={influencer.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-9 w-9">
+                                                    <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person face" />
+                                                    <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="font-medium">{influencer.name}</div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-2">
+                                                {influencer.platforms.map(p => (
+                                                    <div key={p.platform} className="flex items-center gap-2">
+                                                        {platformIcons[p.platform]}
+                                                        <div>
+                                                            <div className="font-medium">{p.channelName}</div>
+                                                            <span className="text-xs text-muted-foreground">@{p.handle}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>
+                                        <TableCell>{influencer.lastPricePaid ? `₹${influencer.lastPricePaid.toLocaleString('en-IN')}` : 'N/A'}</TableCell>
+                                        <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>
+                                        <TableCell>
+                                        <div className="flex items-center">
+                                            {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
+                                            {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
+                                        </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </Card>
+                )}
 
-            <div className="fixed bottom-4 right-4 flex md:hidden flex-col gap-2">
-                <Button onClick={() => setAddInfluencerOpen(true)} size="icon" className="h-14 w-14 rounded-full shadow-lg"><Plus className="h-6 w-6"/></Button>
-            </div>
-            
-            <AddInfluencerDialog
-              isOpen={isAddInfluencerOpen}
-              onClose={() => setAddInfluencerOpen(false)}
-              onAddInfluencer={addInfluencer}
-            />
-            
-            <AlertDialog open={isConfirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -502,6 +492,17 @@ function InfluencersContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+
+            <div className="fixed bottom-4 right-4 flex md:hidden flex-col gap-2">
+                <Button onClick={() => setAddInfluencerOpen(true)} size="icon" className="h-14 w-14 rounded-full shadow-lg"><Plus className="h-6 w-6"/></Button>
+            </div>
+            
+            <AddInfluencerDialog
+              isOpen={isAddInfluencerOpen}
+              onClose={() => setAddInfluencerOpen(false)}
+              onAddInfluencer={addInfluencer}
+            />
         </main>
       </SidebarInset>
     </SidebarProvider>
@@ -515,3 +516,5 @@ export default function InfluencersPage() {
       </React.Suspense>
     );
   }
+
+    
