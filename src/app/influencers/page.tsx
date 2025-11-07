@@ -19,6 +19,7 @@ import {
   Youtube,
   Home,
   UserRound,
+  Trash2,
 } from "lucide-react";
 import { Influencer, UserRole, Platform } from "@/lib/types";
 import { addInfluencer as addInfluencerToDb, deleteInfluencer } from "@/lib/data";
@@ -372,22 +373,29 @@ function InfluencersContent() {
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-lg bg-card/80 backdrop-blur-sm">
                         <DialogHeader>
-                            <div className="flex flex-row items-center gap-4">
-                                <Avatar className="h-16 w-16">
-                                    <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person portrait" />
-                                    <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <DialogTitle className="font-headline text-2xl">{influencer.name}</DialogTitle>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                    {influencer.platforms.map(p => (
-                                        <div key={p.platform} className="flex items-center gap-1 text-sm text-muted-foreground">
-                                        {platformIcons[p.platform]}
-                                        <span>@{p.handle}</span>
+                            <div className="flex flex-row items-start justify-between">
+                                <div className="flex flex-row items-center gap-4">
+                                    <Avatar className="h-16 w-16">
+                                        <AvatarImage src={influencer.avatar} alt={influencer.name} data-ai-hint="person portrait" />
+                                        <AvatarFallback>{influencer.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <DialogTitle className="font-headline text-2xl">{influencer.name}</DialogTitle>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                        {influencer.platforms.map(p => (
+                                            <div key={p.platform} className="flex items-center gap-1 text-sm text-muted-foreground">
+                                            {platformIcons[p.platform]}
+                                            <span>@{p.handle}</span>
+                                            </div>
+                                        ))}
                                         </div>
-                                    ))}
                                     </div>
                                 </div>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon" className="rounded-full">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </AlertDialogTrigger>
                             </div>
                         </DialogHeader>
                             <div className="pt-4 space-y-4">
@@ -412,14 +420,6 @@ function InfluencersContent() {
                                 <p><strong className="font-bold">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
                                 </div>
                             </div>
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button variant="outline">Close</Button>
-                                </DialogClose>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive">Delete Influencer</Button>
-                                </AlertDialogTrigger>
-                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
                     ))}

@@ -31,6 +31,7 @@ declare module 'lucide-react' {
     export const Database: FC<SVGProps<SVGSVGElement>>;
     export const Briefcase: FC<SVGProps<SVGSVGElement>>;
     export const BrainCircuit: FC<SVGProps<SVGSVGElement>>;
+    export const Trash2: FC<SVGProps<SVGSVGElement>>;
     // Add other icons that you use here...
   }
   
