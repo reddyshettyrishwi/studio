@@ -16,5 +16,15 @@ service cloud.firestore {
       // An authenticated user can read or update their own document.
       allow read, update: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Rules for the 'influencers' collection
+    match /influencers/{influencerId} {
+      allow read, list, create, update, delete: if request.auth != null;
+    }
+
+    // Rules for the 'campaigns' collection
+    match /campaigns/{campaignId} {
+      allow read, list, create, update, delete: if request.auth != null;
+    }
   }
 }
