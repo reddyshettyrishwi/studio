@@ -11,9 +11,7 @@ import {
   MessageSquare,
   Users,
   UserRound,
-  CheckCircle,
 } from "lucide-react";
-import { UserRole } from "@/lib/types";
 import {
   SidebarProvider,
   Sidebar,
@@ -27,16 +25,33 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth, useUser } from "@/firebase";
+import { useRouter } from "next/navigation";
 
 function MessagingContent() {
   const searchParams = useSearchParams()
-  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
-  const initialName = searchParams.get('name') || "Jane Doe";
-
-  const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
+  const router = useRouter();
+  const auth = useAuth();
+  const { user: authUser, isUserLoading } = useUser();
+  const initialName = searchParams.get('name') || "User";
   const [userName, setUserName] = React.useState<string>(initialName);
+  
+  React.useEffect(() => {
+    if (!isUserLoading && !authUser) {
+      router.push('/login');
+    }
+  }, [authUser, isUserLoading, router]);
+
+  const handleLogout = () => {
+    auth?.signOut();
+    router.push('/login');
+  }
+
+  if (isUserLoading || !authUser) {
+      return <div className="flex h-screen items-center justify-center">Loading...</div>
+  }
   
   return (
     <SidebarProvider>
@@ -54,20 +69,21 @@ function MessagingContent() {
             <div className="p-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12">
+                   <AvatarImage src={authUser.photoURL || ''} alt={userName} />
                    <AvatarFallback className="bg-primary/20 text-primary">
                     <UserRound className="h-6 w-6" />
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-semibold text-lg">{userName}</p>
-                  <p className="text-sm text-muted-foreground">{userRole}</p>
+                  <p className="text-sm text-muted-foreground">{authUser.email}</p>
                 </div>
               </div>
             </div>
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/dashboard?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
@@ -75,7 +91,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/influencers?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -83,7 +99,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/campaigns?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -91,7 +107,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/messaging?name=${userName}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <MessageSquare />
                   Messaging
@@ -103,12 +119,10 @@ function MessagingContent() {
         <SidebarFooter>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <Link href="/login" className="w-full">
-                        <SidebarMenuButton size="lg">
-                            <LogOut />
-                            Log Out
-                        </SidebarMenuButton>
-                    </Link>
+                    <SidebarMenuButton size="lg" onClick={handleLogout}>
+                        <LogOut />
+                        Log Out
+                    </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>

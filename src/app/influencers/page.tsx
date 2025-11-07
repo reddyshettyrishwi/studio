@@ -21,7 +21,7 @@ import {
   UserRound,
   Trash2,
 } from "lucide-react";
-import { Influencer, UserRole, Platform } from "@/lib/types";
+import { Influencer, Platform } from "@/lib/types";
 import { addInfluencer as addInfluencerToDb, deleteInfluencer } from "@/lib/data";
 import {
   SidebarProvider,
@@ -66,7 +66,6 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -79,9 +78,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useAuth } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 
 const platformIcons: Record<Platform, React.ReactNode> = {
@@ -89,26 +89,19 @@ const platformIcons: Record<Platform, React.ReactNode> = {
   Instagram: <Instagram className="h-4 w-4 text-pink-500" />,
 };
 
-const maskSensitiveData = (data: string, role: UserRole) => {
-  if (role === 'Executive') {
-    return '••••••••••';
-  }
-  return data;
-};
-
 function InfluencersContent() {
   const searchParams = useSearchParams()
-  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
-  const initialName = searchParams.get('name') || "Jane Doe";
+  const router = useRouter();
+  const initialName = searchParams.get('name') || "User";
 
   const db = useFirestore();
-  const { user: authUser } = useUser();
+  const auth = useAuth();
+  const { user: authUser, isUserLoading } = useUser();
   const { toast } = useToast();
   const [initialInfluencers, setInitialInfluencers] = React.useState<Influencer[]>([]);
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "table">("grid");
-  const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
   const [userName, setUserName] = React.useState<string>(initialName);
 
 
@@ -123,6 +116,12 @@ function InfluencersContent() {
   const [isAddInfluencerOpen, setAddInfluencerOpen] = React.useState(false);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = React.useState<Influencer | null>(null);
+
+  React.useEffect(() => {
+    if (!isUserLoading && !authUser) {
+      router.push('/login');
+    }
+  }, [authUser, isUserLoading, router]);
 
   React.useEffect(() => {
     if (!db || !authUser) return;
@@ -219,6 +218,15 @@ function InfluencersContent() {
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     return isPast(date) && date < sixMonthsAgo;
   };
+  
+  const handleLogout = () => {
+    auth?.signOut();
+    router.push('/login');
+  }
+  
+  if (isUserLoading || !authUser) {
+      return <div className="flex h-screen items-center justify-center">Loading...</div>
+  }
 
   return (
     <SidebarProvider>
@@ -235,20 +243,21 @@ function InfluencersContent() {
            <div className="p-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12">
+                  <AvatarImage src={authUser.photoURL || ''} alt={userName} />
                   <AvatarFallback className="bg-primary/20 text-primary">
                     <UserRound className="h-6 w-6" />
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-semibold text-lg">{userName}</p>
-                  <p className="text-sm text-muted-foreground">{userRole}</p>
+                  <p className="text-sm text-muted-foreground">{authUser.email}</p>
                 </div>
               </div>
             </div>
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/dashboard?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
@@ -256,7 +265,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/influencers?name=${userName}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Users />
                   Influencers
@@ -264,7 +273,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/campaigns?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -272,7 +281,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
              <SidebarMenuItem>
-              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/messaging?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
@@ -284,12 +293,10 @@ function InfluencersContent() {
         <SidebarFooter>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <Link href="/login" className="w-full">
-                        <SidebarMenuButton size="lg">
-                            <LogOut />
-                            Log Out
-                        </SidebarMenuButton>
-                    </Link>
+                    <SidebarMenuButton size="lg" onClick={handleLogout}>
+                        <LogOut />
+                        Log Out
+                    </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>
@@ -412,8 +419,8 @@ function InfluencersContent() {
                                     <strong className="font-bold mr-1">Last Promo:</strong> {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
                                     {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
                                 </div>
-                                <p><strong className="font-bold">Email:</strong> {maskSensitiveData(influencer.email, userRole)}</p>
-                                <p><strong className="font-bold">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
+                                <p><strong className="font-bold">Email:</strong> {influencer.email}</p>
+                                <p><strong className="font-bold">Mobile:</strong> {influencer.mobile}</p>
                                 </div>
                             </div>
                              <DialogFooter>
@@ -467,7 +474,7 @@ function InfluencersContent() {
                                         </TableCell>
                                         <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>
                                         <TableCell>{influencer.lastPricePaid ? `₹${influencer.lastPricePaid.toLocaleString('en-IN')}` : 'N/A'}</TableCell>
-                                        <TableCell>{maskSensitiveData(influencer.email, userRole)}</TableCell>
+                                        <TableCell>{influencer.email}</TableCell>
                                         <TableCell>
                                         <div className="flex items-center">
                                             {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}

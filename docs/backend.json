@@ -1,176 +1,5 @@
 {
   "entities": {
-    "Influencer": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Influencer",
-      "type": "object",
-      "description": "Represents an influencer profile within the system.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Influencer entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the influencer."
-        },
-        "platform": {
-          "type": "string",
-          "description": "The primary platform of the influencer (e.g., YouTube, Instagram, TikTok)."
-        },
-        "category": {
-          "type": "string",
-          "description": "The category or niche of the influencer's content (e.g., beauty, gaming, travel)."
-        },
-        "language": {
-          "type": "string",
-          "description": "The primary language of the influencer's content."
-        },
-        "region": {
-          "type": "string",
-          "description": "The region where the influencer is primarily active."
-        },
-        "channelLinks": {
-          "type": "array",
-          "description": "Array of links to the influencer's channels on various platforms.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "handle": {
-          "type": "string",
-          "description": "The handle or username of the influencer on their primary platform."
-        },
-        "contactEmail": {
-          "type": "string",
-          "description": "The email address for contacting the influencer.",
-          "format": "email"
-        },
-        "contactMobile": {
-          "type": "string",
-          "description": "The mobile phone number for contacting the influencer."
-        },
-        "agencyId": {
-          "type": "string",
-          "description": "Reference to Agency. (Relationship: Agency 1:N Influencer). Null if the influencer is not represented by an agency."
-        },
-        "lastPromotionDoneBy": {
-          "type": "string",
-          "description": "The department or team that last worked with the influencer."
-        },
-        "lastPromotionDate": {
-          "type": "string",
-          "description": "The date of the last promotion done with the influencer.",
-          "format": "date-time"
-        },
-        "lastPricePaid": {
-          "type": "number",
-          "description": "The price paid for the influencer's last promotion."
-        },
-        "averageViews": {
-          "type": "number",
-          "description": "The average number of views the influencer's content receives."
-        },
-        "pan": {
-          "type": "string",
-          "description": "The Permanent Account Number (PAN) of the influencer (legal name). Used for duplicate detection."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "platform",
-        "category",
-        "language",
-        "region",
-        "channelLinks",
-        "handle"
-      ]
-    },
-    "Agency": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Agency",
-      "type": "object",
-      "description": "Represents an agency that represents influencers.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Agency entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the agency."
-        },
-        "contactName": {
-          "type": "string",
-          "description": "The name of the primary contact at the agency."
-        },
-        "contactEmail": {
-          "type": "string",
-          "description": "The email address for contacting the agency.",
-          "format": "email"
-        },
-        "contactPhone": {
-          "type": "string",
-          "description": "The phone number for contacting the agency."
-        }
-      },
-      "required": [
-        "id",
-        "name"
-      ]
-    },
-    "Campaign": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Campaign",
-      "type": "object",
-      "description": "Represents a marketing campaign.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Campaign entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the campaign."
-        },
-        "department": {
-          "type": "string",
-          "description": "The department responsible for the campaign."
-        },
-        "deliverables": {
-          "type": "string",
-          "description": "A description of the deliverables for the campaign."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date of the campaign.",
-          "format": "date-time"
-        },
-        "pricePaid": {
-          "type": "number",
-          "description": "The total price paid for the campaign."
-        },
-        "averageViews": {
-          "type": "number",
-          "description": "The average number of views the campaign received."
-        },
-        "influencerIds": {
-          "type": "array",
-          "description": "References to Influencers. (Relationship: Influencer N:N Campaign)",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "department",
-        "date",
-        "pricePaid"
-      ]
-    },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
@@ -179,7 +8,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
+          "description": "Unique identifier for the User entity, matching Firebase Auth UID."
         },
         "name": {
           "type": "string",
@@ -189,6 +18,10 @@
           "type": "string",
           "description": "The email address of the user.",
           "format": "email"
+        },
+        "avatar": {
+            "type": "string",
+            "description": "URL to the user's profile picture."
         }
       },
       "required": [
@@ -200,8 +33,6 @@
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous",
       "google.com"
     ]
   },
@@ -214,7 +45,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles. Only the authenticated user can access their profile (Path-Based Ownership).",
+          "description": "Stores user profiles. Only the authenticated user can access their own profile.",
           "params": [
             {
               "name": "userId",
@@ -222,56 +53,7 @@
             }
           ]
         }
-      },
-      {
-        "path": "/agencies/{agencyId}",
-        "definition": {
-          "entityName": "Agency",
-          "schema": {
-            "$ref": "#/backend/entities/Agency"
-          },
-          "description": "Stores agency profiles. Access control is managed through role-based permissions (e.g., admin role to create/update agencies).",
-          "params": [
-            {
-              "name": "agencyId",
-              "description": "The unique ID of the agency."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/influencers/{influencerId}",
-        "definition": {
-          "entityName": "Influencer",
-          "schema": {
-            "$ref": "#/backend/entities/Influencer"
-          },
-          "description": "Stores influencer profiles. Includes denormalized `agencyId` for authorization independence. Access is controlled based on association with an agency.",
-          "params": [
-            {
-              "name": "influencerId",
-              "description": "The unique ID of the influencer."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/campaigns/{campaignId}",
-        "definition": {
-          "entityName": "Campaign",
-          "schema": {
-            "$ref": "#/backend/entities/Campaign"
-          },
-          "description": "Stores campaign data. Includes denormalized `influencerIds` array for authorization independence, allowing rules to check access based on influencer association.",
-          "params": [
-            {
-              "name": "campaignId",
-              "description": "The unique ID of the campaign."
-            }
-          ]
-        }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to support InfluenceWise's core features: Centralized Influencer Repository, Influencer Scouting & Onboarding, Campaign Reference Data, and Access Control. The design prioritizes Authorization Independence and follows the DBAC principle (Database-Based Access Control). It relies solely on `request.auth.uid` for authorization, avoiding custom claims and hierarchical `get()` calls in security rules.\n\n**Authorization Independence:**\n\n*   **Influencers under Agencies:** The `agencyId` is stored directly within the `influencers` document. This denormalization allows rules to check if the logged-in user has access to a specific agency and, therefore, can access its associated influencers, without needing to perform additional `get()` operations to retrieve the agency information.\n*   **Campaigns and Influencers:** The `influencerIds` array within the `campaigns` document provides a direct reference to the influencers involved in the campaign, enabling security rules to verify if the logged-in user has access to the relevant influencers without retrieving related campaign details.\n\n**Structural Segregation & Access Modeling:**\n\n*   **Users:** User data is stored in `/users/{userId}` using Path-Based Ownership. Security rules will ensure that only the authenticated user (`request.auth.uid == userId`) can read/write their document.\n\n*   **Agencies:** Agencies are stored in the `/agencies/{agencyId}` collection. Role-based access can be implemented by controlling who has the authority to create, update, or delete agency documents. The specific mechanism for assigning roles (e.g., an admin interface managing agency creation/deletion) is outside the scope of the data structure but enabled by it.\n\n*   **Influencers:** Influencers are stored in the `/influencers/{influencerId}` collection. Access control is managed by agency association (`agencyId` field) or direct association through Campaigns.\n\n*   **Campaigns:** Campaigns are stored in the `/campaigns/{campaignId}` collection. Access is based on the user's association with the influencer and potentially the department. Denormalizing relevant authorization attributes into this collection can further enhance security rule simplicity and efficiency.\n\n**QAPs (Rules are not Filters):**\n\nThe structure supports secure `list` operations:\n\n*   Listing Influencers:  Security rules can efficiently filter the `influencers` collection based on the user's association with a particular agency (checking if the user has access to agency with `agencyId` stored in `/influencers/{influencerId}`).\n*    Listing Campaigns: Security rules can restrict access to campaigns based on the user's association with the influencers linked to the campaign (`influencerIds` in `/campaigns/{campaignId}`).\n\nThis structure avoids hierarchical dependencies, promotes clarity, adheres to DBAC, and facilitates secure list operations, leading to simpler and more robust security rules."
+    ]
   }
 }

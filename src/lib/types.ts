@@ -41,21 +41,9 @@ export type Campaign = {
   approvalStatus: ApprovalStatus;
 };
 
-export type PendingUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  status: 'Pending';
-};
-
 export type User = {
   id: string;
   name: string;
   email: string;
-  password?: string;
-  role: UserRole;
-  status: 'Pending' | 'Approved' | 'Rejected';
-  mobile?: string;
-  pan?: string;
+  avatar?: string;
 }

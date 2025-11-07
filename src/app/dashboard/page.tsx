@@ -13,7 +13,7 @@ import {
   Users,
   UserRound,
 } from "lucide-react";
-import { Influencer, Campaign, UserRole, ApprovalStatus } from "@/lib/types";
+import { Influencer, Campaign, ApprovalStatus } from "@/lib/types";
 import {
   SidebarProvider,
   Sidebar,
@@ -39,8 +39,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useAuth } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   const variant = {
@@ -59,16 +60,22 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
 
 function DashboardContent() {
   const searchParams = useSearchParams()
-  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
-  const initialName = searchParams.get('name') || "Jane Doe";
-
+  const router = useRouter();
   const db = useFirestore();
-  const { user: authUser } = useUser();
+  const auth = useAuth();
+  const { user: authUser, isUserLoading } = useUser();
+  const initialName = searchParams.get('name') || "User";
+
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
-  const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
   const [userName, setUserName] = React.useState<string>(initialName);
   
+  React.useEffect(() => {
+    if (!isUserLoading && !authUser) {
+      router.push('/login');
+    }
+  }, [authUser, isUserLoading, router]);
+
   React.useEffect(() => {
     if (!db || !authUser) return;
     const unsubCampaigns = onSnapshot(collection(db, "campaigns"), (snapshot) => {
@@ -111,6 +118,10 @@ function DashboardContent() {
     };
   }, [db, authUser]);
 
+  const handleLogout = () => {
+    auth?.signOut();
+    router.push('/login');
+  }
 
   // Analytics data
   const totalInfluencers = influencers.length;
@@ -125,6 +136,10 @@ function DashboardContent() {
 
   const getInfluencerById = (id: string) => {
     return influencers.find(influencer => influencer.id === id);
+  }
+
+  if (isUserLoading || !authUser) {
+      return <div className="flex h-screen items-center justify-center">Loading...</div>
   }
 
   return (
@@ -143,20 +158,21 @@ function DashboardContent() {
             <div className="p-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12">
+                  <AvatarImage src={authUser?.photoURL || ''} alt={userName} />
                    <AvatarFallback className="bg-primary/20 text-primary">
                     <UserRound className="h-6 w-6" />
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-semibold text-lg">{userName}</p>
-                  <p className="text-sm text-muted-foreground">{userRole}</p>
+                  <p className="text-sm text-muted-foreground">{authUser.email}</p>
                 </div>
               </div>
             </div>
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/dashboard?name=${userName}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Home />
                   Dashboard
@@ -164,7 +180,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/influencers?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -172,7 +188,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/campaigns?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -180,7 +196,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/messaging?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
@@ -192,12 +208,10 @@ function DashboardContent() {
         <SidebarFooter>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <Link href="/login" className="w-full">
-                        <SidebarMenuButton size="lg">
-                            <LogOut />
-                            Log Out
-                        </SidebarMenuButton>
-                    </Link>
+                    <SidebarMenuButton size="lg" onClick={handleLogout}>
+                        <LogOut />
+                        Log Out
+                    </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>
@@ -208,10 +222,6 @@ function DashboardContent() {
                 <div className="flex items-center gap-4">
                     <SidebarTrigger className="md:hidden" />
                     <h2 className="text-3xl font-headline font-bold tracking-tight">Dashboard</h2>
-                </div>
-                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Viewing as:</span>
-                    <Badge variant="outline">{userRole}</Badge>
                 </div>
             </div>
 
@@ -263,7 +273,7 @@ function DashboardContent() {
                   </TableHeader>
                   <TableBody>
                     {recentCampaigns.map(campaign => {
-                      const influencer = getInfluencerById(campaign.influencerId);
+                      const influencer = getInfluencerById(campaign.influencerId!);
                       return (
                         <TableRow key={campaign.id}>
                           <TableCell className="font-medium">{campaign.name}</TableCell>

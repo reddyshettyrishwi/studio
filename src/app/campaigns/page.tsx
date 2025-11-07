@@ -13,9 +13,8 @@ import {
   Users,
   Home,
   UserRound,
-  CheckCircle,
 } from "lucide-react";
-import { Campaign, Influencer, ApprovalStatus, UserRole } from "@/lib/types";
+import { Campaign, Influencer, ApprovalStatus } from "@/lib/types";
 import { logCampaign as logCampaignToDb, updateCampaignStatus } from "@/lib/data";
 import {
   SidebarProvider,
@@ -43,17 +42,11 @@ import {
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import LogCampaignDialog from "@/components/log-campaign-dialog";
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useAuth } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   const variant = {
@@ -70,29 +63,25 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   );
 };
 
-const StatusCircle = ({ status }: { status: ApprovalStatus }) => {
-  const color = {
-    Approved: "bg-green-500/70",
-    Pending: "bg-yellow-500/70",
-    Rejected: "bg-red-500/70",
-    Completed: "bg-blue-500/70",
-  }[status];
-  return <div className={`h-2.5 w-2.5 rounded-full ${color}`} />;
-};
-
 function CampaignsContent() {
   const searchParams = useSearchParams();
-  const initialRole = (searchParams.get('role') as UserRole) || "Manager";
-  const initialName = searchParams.get('name') || "Jane Doe";
+  const router = useRouter();
+  const initialName = searchParams.get('name') || "User";
 
   const db = useFirestore();
-  const { user: authUser } = useUser();
+  const auth = useAuth();
+  const { user: authUser, isUserLoading } = useUser();
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLogCampaignOpen, setLogCampaignOpen] = React.useState(false);
-  const [userRole, setUserRole] = React.useState<UserRole>(initialRole);
   const [userName, setUserName] = React.useState<string>(initialName);
+
+  React.useEffect(() => {
+    if (!isUserLoading && !authUser) {
+      router.push('/login');
+    }
+  }, [authUser, isUserLoading, router]);
 
 
   React.useEffect(() => {
@@ -157,10 +146,14 @@ function CampaignsContent() {
     });
   };
 
-  const handleStatusChange = (campaignId: string, newStatus: ApprovalStatus) => {
-    if (!db) return;
-    updateCampaignStatus(db, campaignId, newStatus);
-  };
+  const handleLogout = () => {
+    auth?.signOut();
+    router.push('/login');
+  }
+
+  if (isUserLoading || !authUser) {
+      return <div className="flex h-screen items-center justify-center">Loading...</div>
+  }
 
   return (
     <SidebarProvider>
@@ -178,20 +171,21 @@ function CampaignsContent() {
            <div className="p-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-12 w-12">
+                  <AvatarImage src={authUser.photoURL || ''} alt={userName} />
                   <AvatarFallback className="bg-primary/20 text-primary">
                     <UserRound className="h-6 w-6" />
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="font-semibold text-lg">{userName}</p>
-                  <p className="text-sm text-muted-foreground">{userRole}</p>
+                  <p className="text-sm text-muted-foreground">{authUser.email}</p>
                 </div>
               </div>
             </div>
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/dashboard?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
@@ -199,7 +193,7 @@ function CampaignsContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/influencers?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -207,7 +201,7 @@ function CampaignsContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/campaigns?name=${userName}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Megaphone />
                   Campaigns
@@ -215,7 +209,7 @@ function CampaignsContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
+              <Link href={`/messaging?name=${userName}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
@@ -227,12 +221,10 @@ function CampaignsContent() {
         <SidebarFooter>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <Link href="/login" className="w-full">
-                        <SidebarMenuButton size="lg">
-                            <LogOut />
-                            Log Out
-                        </SidebarMenuButton>
-                    </Link>
+                    <SidebarMenuButton size="lg" onClick={handleLogout}>
+                        <LogOut />
+                        Log Out
+                    </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarFooter>
@@ -293,40 +285,7 @@ function CampaignsContent() {
                         <TableCell>{format(parseISO(campaign.date), 'dd MMM yyyy')}</TableCell>
                         <TableCell className="text-muted-foreground">{campaign.deliverables}</TableCell>
                         <TableCell>
-                           {userRole === 'Manager' ? (
-                            <Select
-                              value={campaign.approvalStatus}
-                              onValueChange={(newStatus: ApprovalStatus) => handleStatusChange(campaign.id, newStatus)}
-                            >
-                              <SelectTrigger className="w-[140px]">
-                                <SelectValue>
-                                  <div className="flex items-center gap-2">
-                                    {campaign.approvalStatus}
-                                    <StatusCircle status={campaign.approvalStatus} />
-                                  </div>
-                                </SelectValue>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Approved">
-                                  <div className="flex items-center gap-2">
-                                    Approved <StatusCircle status="Approved" />
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="Pending">
-                                   <div className="flex items-center gap-2">
-                                    Pending <StatusCircle status="Pending" />
-                                  </div>
-                                </SelectItem>
-                                <SelectItem value="Rejected">
-                                   <div className="flex items-center gap-2">
-                                    Rejected <StatusCircle status="Rejected" />
-                                  </div>
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : (
                             <StatusBadge status={campaign.approvalStatus} />
-                          )}
                         </TableCell>
                       </TableRow>
                     )
