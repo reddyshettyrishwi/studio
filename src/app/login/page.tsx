@@ -18,7 +18,7 @@ import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addUser, findUserByEmail, findUserByMobileOrPan } from "@/lib/data";
+import { addUser, findUserByMobileOrPan, getUserProfile } from "@/lib/data";
 import { useAuth, useFirestore, useUser } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
@@ -96,7 +96,7 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
-        const userProfile = await findUserByEmail(db, firebaseUser.email!);
+        const userProfile = await getUserProfile(db, firebaseUser.uid);
 
         if (!userProfile) {
             await auth.signOut();
@@ -107,7 +107,6 @@ export default function LoginPage() {
         } else if (userProfile.status !== 'Approved') {
             await auth.signOut();
             if (userProfile.status === 'Pending') {
-                toast({ variant: "destructive", title: "Sign In Failed", description: "This account is pending approval." });
                 router.push('/pending-approval');
             } else { 
                  toast({ variant: "destructive", title: "Sign In Failed", description: "This account has been rejected." });
@@ -130,7 +129,13 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     if (!isUserLoading && authUser && db) {
-        findUserByEmail(db, authUser.email!).then(userProfile => {
+        // Special case for admin to avoid profile lookup issues on first login
+        if (authUser.email === 'admin@nxtwave.co.in') {
+            router.push(`/admin/approvals?role=Admin&name=Admin`);
+            return;
+        }
+
+        getUserProfile(db, authUser.uid).then(userProfile => {
             if (userProfile && userProfile.status === 'Approved') {
                  if (userProfile.role === 'Admin') {
                     router.push(`/admin/approvals?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);

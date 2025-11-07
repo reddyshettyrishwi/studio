@@ -69,28 +69,27 @@ export const addUser = (db: Firestore, user: Omit<User, 'password'>) => {
     });
 };
 
-export const findUserByEmail = async (db: Firestore, email: string): Promise<User | undefined> => {
-    if (!email) return undefined;
-    const usersCol = collection(db, 'users');
-    const q = query(usersCol, where("email", "==", email));
+export const getUserProfile = async (db: Firestore, userId: string): Promise<User | undefined> => {
+    if (!userId) return undefined;
+    const userRef = doc(db, 'users', userId);
     try {
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return undefined;
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as User;
         }
-        const userDoc = snapshot.docs[0];
-        return { id: userDoc.id, ...userDoc.data() } as User;
+        return undefined;
     } catch (error) {
         errorEmitter.emit(
             'permission-error',
             new FirestorePermissionError({
-              path: 'users',
-              operation: 'list',
+              path: userRef.path,
+              operation: 'get',
             })
         );
-        throw error; // Re-throw so the caller knows it failed
+        throw error;
     }
 };
+
 
 export const findUserByMobileOrPan = async (db: Firestore, mobile: string, pan: string): Promise<User | undefined> => {
     const usersRef = collection(db, 'users');
@@ -166,6 +165,9 @@ export const addInfluencer = async (db: Firestore, influencerData: Omit<Influenc
         }
     }
   } catch (error) {
+     if (error instanceof Error && (error.message.includes("mobile number") || error.message.includes("PAN ID"))) {
+        throw error;
+     }
      errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
