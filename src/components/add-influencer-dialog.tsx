@@ -325,7 +325,7 @@ export default function AddInfluencerDialog({
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Channel Name</FormLabel>
-                            <FormControl><Input placeholder="e.g., Jane's World" {...field} /></FormControl>
+                            <FormControl><Input placeholder="e.g., Jane's World" {...field} value={field.value || ''} /></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -336,7 +336,7 @@ export default function AddInfluencerDialog({
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Username</FormLabel>
-                            <FormControl><Input placeholder="@janedoe" {...field} /></FormControl>
+                            <FormControl><Input placeholder="@janedoe" {...field} value={field.value || ''} /></FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -438,7 +438,5 @@ export default function AddInfluencerDialog({
     </Dialog>
   );
 }
-
-    
 
     
