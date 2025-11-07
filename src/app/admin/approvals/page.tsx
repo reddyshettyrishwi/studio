@@ -14,7 +14,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { UserRole, PendingUser } from "@/lib/types";
-import { approveUser, rejectUser, getPendingUsers } from "@/lib/data";
+import { approveUser, rejectUser } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -154,39 +154,6 @@ function AdminApprovalsContent() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton size="lg">
-                  <Home />
-                  Dashboard
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href={`/influencers?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton size="lg">
-                  <Users />
-                  Influencers
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href={`/campaigns?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton size="lg">
-                  <Megaphone />
-                  Campaigns
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <Link href={`/messaging?role=${userRole}&name=${userName}`} className="w-full">
-                <SidebarMenuButton size="lg">
-                  <MessageSquare />
-                  Messaging
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-             {userRole === 'Admin' && (
-              <SidebarMenuItem>
                 <Link href={`/admin/approvals?role=${userRole}&name=${userName}`} className="w-full">
                   <SidebarMenuButton isActive size="lg">
                     <CheckCircle />
@@ -194,7 +161,6 @@ function AdminApprovalsContent() {
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
-            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>

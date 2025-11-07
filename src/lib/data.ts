@@ -169,4 +169,3 @@ export const updateCampaignStatus = async (db: Firestore, campaignId: string, st
   const campaignRef = doc(db, 'campaigns', campaignId);
   await setDoc(campaignRef, { approvalStatus: status }, { merge: true });
 };
-    

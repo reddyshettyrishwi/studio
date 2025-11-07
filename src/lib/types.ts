@@ -55,9 +55,7 @@ export type User = {
   email: string;
   password?: string;
   role: UserRole;
-  status: 'Pending' | 'Approved';
+  status: 'Pending' | 'Approved' | 'Rejected';
   mobile: string;
   pan: string;
 }
-
-    

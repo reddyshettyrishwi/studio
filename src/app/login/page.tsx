@@ -108,11 +108,13 @@ export default function LoginPage() {
             await auth.signOut();
             toast({ variant: "destructive", title: "Sign In Failed", description: "Incorrect role selected for this account." });
         } else if (userProfile.status !== 'Approved') {
-            const isPending = userProfile.status === 'Pending';
-            const description = isPending ? "This account is pending approval." : "This account has been rejected.";
             await auth.signOut();
-            toast({ variant: "destructive", title: "Sign In Failed", description });
-            if (isPending) router.push('/pending-approval');
+            if (userProfile.status === 'Pending') {
+                toast({ variant: "destructive", title: "Sign In Failed", description: "This account is pending approval." });
+                router.push('/pending-approval');
+            } else { // Rejected
+                 toast({ variant: "destructive", title: "Sign In Failed", description: "This account has been rejected." });
+            }
         } else {
             // Success! Navigate to the correct page.
             if (userProfile.role === 'Admin') {
@@ -134,7 +136,7 @@ export default function LoginPage() {
     // If user is already logged in (e.g. from a previous session or by using the back button), redirect them.
     if (!isUserLoading && authUser && db) {
         findUserByEmail(db, authUser.email!).then(userProfile => {
-            if (userProfile) {
+            if (userProfile && userProfile.status === 'Approved') {
                  if (userProfile.role === 'Admin') {
                     router.push(`/admin/approvals?role=${userProfile.role}&name=${encodeURIComponent(userProfile.name)}`);
                 } else {
@@ -146,7 +148,7 @@ export default function LoginPage() {
   }, [authUser, isUserLoading, router, db]);
 
   // While checking auth state on initial load, show a loader.
-  if (isUserLoading || authUser) {
+  if (isUserLoading) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -260,7 +262,3 @@ export default function LoginPage() {
     </div>
   );
 }
-    
-    
-    
-    
