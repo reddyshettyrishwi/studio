@@ -39,7 +39,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
@@ -84,11 +84,27 @@ function DashboardContent() {
         } as Campaign;
       });
       setCampaigns(fetchedCampaigns);
+    },
+    (error) => {
+      console.error("Error fetching campaigns:", error);
+      const contextualError = new FirestorePermissionError({
+        operation: 'list',
+        path: 'campaigns',
+      });
+      errorEmitter.emit('permission-error', contextualError);
     });
 
     const unsubInfluencers = onSnapshot(collection(db, "influencers"), (snapshot) => {
       const fetchedInfluencers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Influencer));
       setInfluencers(fetchedInfluencers);
+    },
+    (error) => {
+        console.error("Error fetching influencers:", error);
+        const contextualError = new FirestorePermissionError({
+            operation: 'list',
+            path: 'influencers',
+        });
+        errorEmitter.emit('permission-error', contextualError);
     });
 
     return () => {

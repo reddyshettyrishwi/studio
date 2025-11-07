@@ -79,7 +79,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
@@ -141,6 +141,14 @@ function InfluencersContent() {
       });
       setInfluencers(fetchedInfluencers);
       setInitialInfluencers(fetchedInfluencers);
+    },
+    (error) => {
+      console.error("Error fetching influencers:", error);
+      const contextualError = new FirestorePermissionError({
+        operation: 'list',
+        path: 'influencers',
+      });
+      errorEmitter.emit('permission-error', contextualError);
     });
     return () => unsub();
   }, [db, authUser]);

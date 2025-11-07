@@ -40,9 +40,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useUser } from "@/firebase";
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 function AdminApprovalsContent() {
   const searchParams = useSearchParams()
@@ -66,9 +67,30 @@ function AdminApprovalsContent() {
   React.useEffect(() => {
     if (!db || !authUser || authUser.email !== 'admin@nxtwave.co.in') return;
     
-    const unsub = getPendingUsers(db, (users) => {
-      setPendingUsers(users);
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, where("status", "==", "Pending"));
+    
+    const unsub = onSnapshot(q, (snapshot) => {
+        const pendingUsers = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name,
+                email: data.email,
+                role: data.role,
+                status: 'Pending'
+            } as PendingUser
+        });
+        setPendingUsers(pendingUsers);
+    }, (error) => {
+        console.error("Error fetching pending users:", error);
+        const contextualError = new FirestorePermissionError({
+          operation: 'list',
+          path: 'users',
+        });
+        errorEmitter.emit('permission-error', contextualError);
     });
+
 
     return () => unsub();
   }, [db, authUser]);
