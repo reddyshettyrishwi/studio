@@ -22,10 +22,6 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center text-center p-4">
       <div className="flex flex-col items-center gap-6">
-        <div className="bg-primary/20 text-primary p-4 rounded-full">
-            <Megaphone className="h-10 w-10" />
-        </div>
-
         <h1 className="text-5xl md:text-6xl font-headline font-bold tracking-tight max-w-3xl">
           The Smart Hub for Influencer Marketing
         </h1>
