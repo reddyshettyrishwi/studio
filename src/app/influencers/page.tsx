@@ -143,7 +143,6 @@ function InfluencersContent() {
       setInitialInfluencers(fetchedInfluencers);
     },
     (error) => {
-      console.error("Error fetching influencers:", error);
       const contextualError = new FirestorePermissionError({
         operation: 'list',
         path: 'influencers',
@@ -191,7 +190,7 @@ function InfluencersContent() {
         title: "Success!",
         description: `${newInfluencer.name} has been added to the repository.`,
       });
-      setAddInfluencerOpen(false); // Close dialog on success
+      setAddInfluencerOpen(false);
     } catch (error: any) {
       toast({
         title: "Duplicate Found",
@@ -203,27 +202,19 @@ function InfluencersContent() {
   
   const handleDeleteInfluencer = async () => {
     if (!db || !selectedInfluencer) return;
-    try {
-        await deleteInfluencer(db, selectedInfluencer.id);
-        toast({
-            title: "Influencer Deleted",
-            description: `${selectedInfluencer.name} has been removed from the repository.`,
-        });
-    } catch (error) {
-         toast({
-            title: "Error",
-            description: "Could not delete the influencer.",
-            variant: "destructive"
-        });
-    } finally {
-        setConfirmDeleteOpen(false);
-        setSelectedInfluencer(null);
-    }
+    
+    deleteInfluencer(db, selectedInfluencer.id);
+    
+    toast({
+        title: "Influencer Deleted",
+        description: `${selectedInfluencer.name} has been removed from the repository.`,
+    });
+    setConfirmDeleteOpen(false);
+    setSelectedInfluencer(null);
   };
 
   const isDataOutdated = (dateString: string) => {
     const date = new Date(dateString);
-    // e.g. outdated if older than 6 months
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     return isPast(date) && date < sixMonthsAgo;

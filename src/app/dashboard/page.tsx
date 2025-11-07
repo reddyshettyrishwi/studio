@@ -86,7 +86,6 @@ function DashboardContent() {
       setCampaigns(fetchedCampaigns);
     },
     (error) => {
-      console.error("Error fetching campaigns:", error);
       const contextualError = new FirestorePermissionError({
         operation: 'list',
         path: 'campaigns',
@@ -99,7 +98,6 @@ function DashboardContent() {
       setInfluencers(fetchedInfluencers);
     },
     (error) => {
-        console.error("Error fetching influencers:", error);
         const contextualError = new FirestorePermissionError({
             operation: 'list',
             path: 'influencers',

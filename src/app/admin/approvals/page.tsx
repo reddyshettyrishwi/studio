@@ -83,7 +83,6 @@ function AdminApprovalsContent() {
         });
         setPendingUsers(pendingUsers);
     }, (error) => {
-        console.error("Error fetching pending users:", error);
         const contextualError = new FirestorePermissionError({
           operation: 'list',
           path: 'users',
@@ -103,19 +102,19 @@ function AdminApprovalsContent() {
     );
   }
 
-  const handleApproval = async (userId: string, approve: boolean) => {
+  const handleApproval = (userId: string, approve: boolean) => {
     if (!db) return;
     const user = pendingUsers.find(u => u.id === userId);
     if (!user) return;
 
     if (approve) {
-      await approveUser(db, userId);
+      approveUser(db, userId);
       toast({
           title: `User Approved`,
           description: `${user.name}'s account has been approved.`,
       });
     } else {
-      await rejectUser(db, userId);
+      rejectUser(db, userId);
        toast({
           title: `User Rejected`,
           description: `${user.name}'s account has been rejected.`,

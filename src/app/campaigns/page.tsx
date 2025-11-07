@@ -112,7 +112,6 @@ function CampaignsContent() {
       setCampaigns(fetchedCampaigns);
     },
     (error) => {
-      console.error("Error fetching campaigns:", error);
       const contextualError = new FirestorePermissionError({
         operation: 'list',
         path: 'campaigns',
@@ -125,7 +124,6 @@ function CampaignsContent() {
       setInfluencers(fetchedInfluencers);
     },
     (error) => {
-        console.error("Error fetching influencers:", error);
         const contextualError = new FirestorePermissionError({
             operation: 'list',
             path: 'influencers',
@@ -151,17 +149,17 @@ function CampaignsContent() {
     return influencers.find(influencer => influencer.id === id);
   }
   
-  const logCampaign = async (newCampaign: Omit<Campaign, 'id' | 'approvalStatus'>) => {
+  const logCampaign = (newCampaign: Omit<Campaign, 'id' | 'approvalStatus'>) => {
     if (!db) return;
-    await logCampaignToDb(db, {
+    logCampaignToDb(db, {
       ...newCampaign,
       approvalStatus: 'Pending',
     });
   };
 
-  const handleStatusChange = async (campaignId: string, newStatus: ApprovalStatus) => {
+  const handleStatusChange = (campaignId: string, newStatus: ApprovalStatus) => {
     if (!db) return;
-    await updateCampaignStatus(db, campaignId, newStatus);
+    updateCampaignStatus(db, campaignId, newStatus);
   };
 
   return (
