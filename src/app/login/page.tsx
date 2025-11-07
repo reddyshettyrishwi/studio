@@ -99,7 +99,8 @@ export default function LoginPage() {
          } else {
             toast({ variant: "destructive", title: "Sign Up Failed", description: error.message || "An error occurred during sign up." });
          }
-         setIsProcessing(false);
+      } finally {
+        setIsProcessing(false);
       }
     } else { // SIGN IN (All Roles)
       try {
@@ -144,7 +145,8 @@ export default function LoginPage() {
         
       } catch (error: any) {
          toast({ variant: "destructive", title: "Sign In Failed", description: "Invalid email or password." });
-         setIsProcessing(false);
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
@@ -274,3 +276,7 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
+
+    
