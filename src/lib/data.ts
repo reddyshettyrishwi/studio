@@ -53,9 +53,10 @@ export const addUser = (db: Firestore, user: Omit<User, 'password'>) => {
         email: user.email,
         role: user.role,
         status: status,
-        mobile: user.mobile,
-        pan: user.pan,
     };
+    
+    if (user.mobile) newUser.mobile = user.mobile;
+    if (user.pan) newUser.pan = user.pan;
 
     setDoc(userRef, newUser, { merge: true }).catch(error => {
       errorEmitter.emit(
@@ -94,6 +95,28 @@ export const getUserProfile = async (db: Firestore, userId: string): Promise<Use
 export const findUserByMobileOrPan = async (db: Firestore, mobile: string, pan: string): Promise<User | undefined> => {
     const usersRef = collection(db, 'users');
     const q = query(usersRef, or(where('mobile', '==', mobile), where('pan', '==', pan)));
+    try {
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+            return undefined;
+        }
+        const userDoc = querySnapshot.docs[0];
+        return { id: userDoc.id, ...userDoc.data() } as User;
+    } catch (error) {
+         errorEmitter.emit(
+            'permission-error',
+            new FirestorePermissionError({
+              path: 'users',
+              operation: 'list',
+            })
+        );
+        throw error; // Re-throw so the caller knows it failed
+    }
+};
+
+export const findUserByEmail = async (db: Firestore, email: string): Promise<User | undefined> => {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', email));
     try {
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) {

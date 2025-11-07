@@ -18,9 +18,11 @@ import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addUser, findUserByMobileOrPan, getUserProfile } from "@/lib/data";
+import { addUser, findUserByMobileOrPan, getUserProfile, findUserByEmail } from "@/lib/data";
 import { useAuth, useFirestore, useUser } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { Chrome } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 
 export default function LoginPage() {
@@ -126,6 +128,55 @@ export default function LoginPage() {
       }
     }
   };
+
+  const handleGoogleSignIn = async () => {
+    if (!db || !auth) {
+        toast({ variant: "destructive", title: "Initialization Error", description: "Firebase is not ready." });
+        return;
+    }
+    if (selectedRole !== 'Executive') {
+        toast({ variant: "destructive", title: "Sign In Failed", description: "Google Sign-In is only available for Executives." });
+        return;
+    }
+
+    setIsProcessing(true);
+    const provider = new GoogleAuthProvider();
+    try {
+        const userCredential = await signInWithPopup(auth, provider);
+        const firebaseUser = userCredential.user;
+
+        const existingUser = await findUserByEmail(db, firebaseUser.email!);
+
+        if (existingUser) { // User exists, check their status
+            if (existingUser.role !== 'Executive') {
+                 await auth.signOut();
+                 toast({ variant: "destructive", title: "Sign In Failed", description: "This Google account is not registered as an Executive." });
+            } else if (existingUser.status === 'Approved') {
+                router.push(`/dashboard?role=${existingUser.role}&name=${encodeURIComponent(existingUser.name)}`);
+            } else if (existingUser.status === 'Pending') {
+                router.push('/pending-approval');
+            } else { // Rejected
+                await auth.signOut();
+                toast({ variant: "destructive", title: "Sign In Failed", description: "This account has been rejected." });
+            }
+        } else { // New user, create pending account
+             addUser(db, {
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || 'New User',
+                email: firebaseUser.email!,
+                role: 'Executive',
+                status: 'Pending',
+            });
+            await auth.signOut();
+            router.push('/pending-approval');
+        }
+
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Google Sign-In Failed", description: error.message || "An error occurred." });
+    } finally {
+        setIsProcessing(false);
+    }
+  }
 
   React.useEffect(() => {
     if (!isUserLoading && authUser && db) {
@@ -242,6 +293,19 @@ export default function LoginPage() {
             <Button onClick={handleAuthAction} className="w-full" disabled={isProcessing}>
               {isProcessing ? <Loader2 className="animate-spin" /> : (isSigningUp && selectedRole !== 'Admin' ? "Sign Up" : "Sign In")}
             </Button>
+            
+            {selectedRole === 'Executive' && !isSigningUp && (
+                 <>
+                    <div className="relative">
+                        <Separator />
+                        <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-background px-2 text-xs text-muted-foreground">OR</span>
+                    </div>
+                    <Button variant="outline" onClick={handleGoogleSignIn} disabled={isProcessing}>
+                        {isProcessing ? <Loader2 className="animate-spin" /> : <><Chrome className="mr-2 h-4 w-4" /> Sign in with Google</>}
+                    </Button>
+                </>
+            )}
+
         </CardContent>
         {selectedRole !== 'Admin' && (
            <CardFooter>
