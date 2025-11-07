@@ -74,7 +74,7 @@ type AddInfluencerFormValues = z.infer<typeof influencerSchema>;
 interface AddInfluencerDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddInfluencer: (influencer: Omit<Influencer, "id" | "avatar">) => void;
+  onAddInfluencer: (influencer: Omit<Influencer, "id" | "avatar">) => Promise<void>;
 }
 
 export default function AddInfluencerDialog({
@@ -109,7 +109,7 @@ export default function AddInfluencerDialog({
   
   const { control } = form;
 
-  function onSubmit(data: AddInfluencerFormValues) {
+  async function onSubmit(data: AddInfluencerFormValues) {
     const platforms: PlatformDetails[] = [data.platform1 as PlatformDetails];
     if (data.platform2 && data.platform2.handle) {
       platforms.push(data.platform2 as PlatformDetails);
@@ -126,11 +126,7 @@ export default function AddInfluencerDialog({
     delete (influencerData as any).platform2;
 
 
-    onAddInfluencer(influencerData as Omit<Influencer, "id" | "avatar">);
-    toast({
-      title: "Success!",
-      description: `${data.name} has been added to the repository.`,
-    });
+    await onAddInfluencer(influencerData as Omit<Influencer, "id" | "avatar">);
     form.reset();
     onClose();
   }
