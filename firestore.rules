@@ -3,43 +3,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check for Admin role
-    function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
-    }
-
-    // Rules for the 'users' collection
-    match /users/{userId} {
-      // CREATE: Anyone can create their own user document (sign up), but status must be 'Pending'
-      allow create: if request.auth.uid == userId && request.resource.data.status == 'Pending';
-      
-      // READ: 
-      // 1. Users can read their own document.
-      // 2. An Admin can read any user document (for the approvals list).
-      allow read: if request.auth.uid == userId || isAdmin();
-      
-      // UPDATE: Only an Admin can update a user's status (approve).
-      allow update: if isAdmin() && request.resource.data.keys().hasOnly(['status']);
-      
-      // DELETE: Only an Admin can delete a user document (reject).
-      allow delete: if isAdmin();
-    }
-
-    // Rules for the 'influencers' collection
-    match /influencers/{influencerId} {
-      // Allow read for any authenticated user
-      allow read: if request.auth != null;
-      // Allow create, update, delete for authenticated users who are not Executives
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'Executive';
-    }
-
-    // Rules for the 'campaigns' collection
-    match /campaigns/{campaignId} {
-       // Allow read for any authenticated user
-      allow read: if request.auth != null;
-      // Allow create, update, delete for authenticated users who are not Executives
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != 'Executive';
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
