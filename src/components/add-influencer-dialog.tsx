@@ -139,6 +139,8 @@ export default function AddInfluencerDialog({
                 }
             } catch (error) {
                 console.error("AI duplicate detection failed:", error);
+                // We don't show a toast here to not interrupt the user flow.
+                // The feature will be gracefully disabled if the AI check fails.
             } finally {
                 setIsDetecting(false);
             }
@@ -428,3 +430,5 @@ export default function AddInfluencerDialog({
     </Dialog>
   );
 }
+
+    
