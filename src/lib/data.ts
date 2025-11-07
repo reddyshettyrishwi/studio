@@ -16,6 +16,7 @@ import {
   writeBatch,
   Timestamp,
   Firestore,
+  or,
 } from 'firebase/firestore';
 
 // Note: The original in-memory data has been removed.
@@ -48,12 +49,15 @@ export const addUser = async (db: Firestore, user: Omit<User, 'password'>) => {
     // For admins, status is always 'Approved'. For others, it's what's passed or defaults to 'Pending'.
     const status = user.role === 'Admin' ? 'Approved' : (user.status || 'Pending');
 
-    const newUser = {
+    const newUser: Partial<User> = {
         name: user.name,
         email: user.email,
         role: user.role,
         status: status,
     };
+
+    if (user.mobile) newUser.mobile = user.mobile;
+    if (user.pan) newUser.pan = user.pan;
 
     await setDoc(userRef, newUser, { merge: true }); // Use merge to avoid overwriting if doc exists
     return { id: user.id, ...newUser } as User;
@@ -63,6 +67,20 @@ export const findUserByEmail = async (db: Firestore, email: string): Promise<Use
     if (!email) return undefined;
     const usersCol = collection(db, 'users');
     const q = query(usersCol, where("email", "==", email));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return undefined;
+    }
+    const userDoc = snapshot.docs[0];
+    return { id: userDoc.id, ...userDoc.data() } as User;
+};
+
+export const findUserByMobileOrPan = async (db: Firestore, mobile: string, pan: string): Promise<User | undefined> => {
+    if (!mobile && !pan) return undefined;
+
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, or(where("mobile", "==", mobile), where("pan", "==", pan)));
+    
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
         return undefined;

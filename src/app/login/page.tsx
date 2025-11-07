@@ -18,7 +18,7 @@ import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { addUser, findUserByEmail } from "@/lib/data";
+import { addUser, findUserByEmail, findUserByMobileOrPan } from "@/lib/data";
 import { useAuth, useFirestore, useUser } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
@@ -34,6 +34,8 @@ export default function LoginPage() {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [mobile, setMobile] = React.useState("");
+  const [pan, setPan] = React.useState("");
   const [selectedRole, setSelectedRole] = React.useState<UserRole>("Manager");
   const [isProcessing, setIsProcessing] = React.useState(false);
 
@@ -61,17 +63,24 @@ export default function LoginPage() {
     setIsProcessing(true);
 
     if (isSigningUp && selectedRole !== 'Admin') { // SIGN UP (Managers & Executives)
-      if (!name || !email || !password) {
+      if (!name || !email || !password || !mobile || !pan) {
         toast({ variant: "destructive", title: "Sign Up Failed", description: "Please fill in all fields." });
         setIsProcessing(false);
         return;
       }
       try {
-        const existingUser = await findUserByEmail(db, email);
-        if (existingUser) {
+        const existingUserByEmail = await findUserByEmail(db, email);
+        if (existingUserByEmail) {
            toast({ variant: "destructive", title: "Sign Up Failed", description: "An account with this email already exists." });
            setIsProcessing(false);
            return;
+        }
+
+        const existingUserByMobileOrPan = await findUserByMobileOrPan(db, mobile, pan);
+        if (existingUserByMobileOrPan) {
+            toast({ variant: "destructive", title: "Sign Up Failed", description: "User already exists with this mobile or PAN." });
+            setIsProcessing(false);
+            return;
         }
 
         // We create the user in Auth, but sign them out immediately.
@@ -79,7 +88,7 @@ export default function LoginPage() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
-        await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending' });
+        await addUser(db, { id: firebaseUser.uid, name, email, role: selectedRole, status: 'Pending', mobile, pan });
         await auth.signOut();
         
         router.push('/pending-approval');
@@ -193,6 +202,18 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
+            {isSigningUp && selectedRole !== 'Admin' && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="mobile">Mobile Number</Label>
+                  <Input id="mobile" placeholder="+91-9876543210" value={mobile} onChange={(e) => setMobile(e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="pan">PAN / Legal ID</Label>
+                  <Input id="pan" value={pan} onChange={(e) => setPan(e.target.value)} required />
+                </div>
+              </>
+            )}
           
             <div className="grid gap-2">
               <Label>Select Role</Label>
