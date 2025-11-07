@@ -31,10 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, ShieldAlert, CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import type { Influencer, PlatformDetails } from "@/lib/types";
-import { detectDuplicateInfluencers, DetectDuplicateInfluencersOutput } from "@/ai/flows/detect-duplicate-influencers";
 import { Separator } from "./ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
@@ -85,8 +83,6 @@ export default function AddInfluencerDialog({
   onAddInfluencer,
 }: AddInfluencerDialogProps) {
   const { toast } = useToast();
-  const [isDetecting, setIsDetecting] = React.useState(false);
-  const [duplicateResult, setDuplicateResult] = React.useState<DetectDuplicateInfluencersOutput | null>(null);
   
   const form = useForm<AddInfluencerFormValues>({
     resolver: zodResolver(influencerSchema),
@@ -111,51 +107,7 @@ export default function AddInfluencerDialog({
     },
   });
   
-  const { control, watch, setValue } = form;
-
-  const debounceTimeout = React.useRef<NodeJS.Timeout>();
-
-  const handleDuplicateCheck = React.useCallback((mobile?: string, pan?: string) => {
-    clearTimeout(debounceTimeout.current);
-    if (mobile && mobile.length >= 10 && pan && pan.length > 5) {
-        debounceTimeout.current = setTimeout(async () => {
-            setIsDetecting(true);
-            setDuplicateResult(null);
-            try {
-                const result = await detectDuplicateInfluencers({
-                    mobileNumber: mobile,
-                    legalName: pan, // Using PAN as legal name
-                });
-                if (result.isDuplicate) {
-                    setDuplicateResult(result);
-                    // Clear the fields to force user to re-enter
-                    setValue('mobile', '');
-                    setValue('pan', '');
-                }
-            } catch (error) {
-                console.error("AI duplicate detection failed:", error);
-                // We don't show a toast here to not interrupt the user flow.
-                // The feature will be gracefully disabled if the AI check fails.
-            } finally {
-                setIsDetecting(false);
-            }
-        }, 1000);
-    }
-  }, [setValue]);
-
-  React.useEffect(() => {
-    const subscription = watch((value, { name }) => {
-        if (name === 'mobile' || name === 'pan') {
-            // As soon as user starts typing again, reset the duplicate state
-            if (duplicateResult) {
-                setDuplicateResult(null);
-            }
-            handleDuplicateCheck(value.mobile, value.pan);
-        }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch, handleDuplicateCheck, duplicateResult]);
-
+  const { control } = form;
 
   function onSubmit(data: AddInfluencerFormValues) {
     const platforms: PlatformDetails[] = [data.platform1 as PlatformDetails];
@@ -180,7 +132,6 @@ export default function AddInfluencerDialog({
       description: `${data.name} has been added to the repository.`,
     });
     form.reset();
-    setDuplicateResult(null);
     onClose();
   }
 
@@ -188,7 +139,6 @@ export default function AddInfluencerDialog({
     <Dialog open={isOpen} onOpenChange={(open) => {
         if (!open) {
             form.reset();
-            setDuplicateResult(null);
             onClose();
         }
     }}>
@@ -235,18 +185,6 @@ export default function AddInfluencerDialog({
                 )}
               />
             </div>
-            
-            {(isDetecting || duplicateResult) && (
-              <Alert variant={duplicateResult ? "destructive" : "default"}>
-                {isDetecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
-                <AlertTitle>{isDetecting ? "Checking for duplicates..." : "Duplicate Found!"}</AlertTitle>
-                <AlertDescription>
-                  {isDetecting
-                    ? "Our AI is checking if this influencer already exists in the repository."
-                    : `This influencer already exists. Please enter a different mobile number and PAN.`}
-                </AlertDescription>
-              </Alert>
-            )}
             
             <Separator />
             <div className="space-y-2">
@@ -428,7 +366,7 @@ export default function AddInfluencerDialog({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isDetecting || !!duplicateResult}>
+              <Button type="submit">
                 Add Influencer
               </Button>
             </DialogFooter>

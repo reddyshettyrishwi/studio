@@ -56,9 +56,6 @@ export const addUser = async (db: Firestore, user: Omit<User, 'password'>) => {
         status: status,
     };
 
-    if (user.mobile) newUser.mobile = user.mobile;
-    if (user.pan) newUser.pan = user.pan;
-
     await setDoc(userRef, newUser, { merge: true }); // Use merge to avoid overwriting if doc exists
     return { id: user.id, ...newUser } as User;
 };
@@ -74,21 +71,6 @@ export const findUserByEmail = async (db: Firestore, email: string): Promise<Use
     const userDoc = snapshot.docs[0];
     return { id: userDoc.id, ...userDoc.data() } as User;
 };
-
-export const findUserByMobileOrPan = async (db: Firestore, mobile: string, pan: string): Promise<User | undefined> => {
-    if (!mobile && !pan) return undefined;
-
-    const usersCol = collection(db, 'users');
-    const q = query(usersCol, or(where("mobile", "==", mobile), where("pan", "==", pan)));
-    
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-        return undefined;
-    }
-    const userDoc = snapshot.docs[0];
-    return { id: userDoc.id, ...userDoc.data() } as User;
-};
-
 
 export const getPendingUsers = (db: Firestore, callback: (users: PendingUser[]) => void) => {
     const usersCol = collection(db, 'users');
@@ -159,3 +141,5 @@ export const updateCampaignStatus = async (db: Firestore, campaignId: string, st
   const campaignRef = doc(db, 'campaigns', campaignId);
   await setDoc(campaignRef, { approvalStatus: status }, { merge: true });
 };
+
+    
