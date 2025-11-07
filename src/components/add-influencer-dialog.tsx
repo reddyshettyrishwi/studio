@@ -111,7 +111,7 @@ export default function AddInfluencerDialog({
     },
   });
   
-  const { control, watch } = form;
+  const { control, watch, setValue } = form;
 
   const debounceTimeout = React.useRef<NodeJS.Timeout>();
 
@@ -128,6 +128,9 @@ export default function AddInfluencerDialog({
                 });
                 if (result.isDuplicate) {
                     setDuplicateResult(result);
+                    // Clear the fields to force user to re-enter
+                    setValue('mobile', '');
+                    setValue('pan', '');
                 }
             } catch (error) {
                 console.error("AI duplicate detection failed:", error);
@@ -138,16 +141,20 @@ export default function AddInfluencerDialog({
             }
         }, 1000);
     }
-  }, []);
+  }, [setValue]);
 
   React.useEffect(() => {
     const subscription = watch((value, { name }) => {
         if (name === 'mobile' || name === 'pan') {
+            // As soon as user starts typing again, reset the duplicate state
+            if (duplicateResult) {
+                setDuplicateResult(null);
+            }
             handleDuplicateCheck(value.mobile, value.pan);
         }
     });
     return () => subscription.unsubscribe();
-  }, [watch, handleDuplicateCheck]);
+  }, [watch, handleDuplicateCheck, duplicateResult]);
 
 
   function onSubmit(data: AddInfluencerFormValues) {
@@ -232,11 +239,11 @@ export default function AddInfluencerDialog({
             {(isDetecting || duplicateResult) && (
               <Alert variant={duplicateResult ? "destructive" : "default"}>
                 {isDetecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
-                <AlertTitle>{isDetecting ? "Checking for duplicates..." : "Potential Duplicate Found!"}</AlertTitle>
+                <AlertTitle>{isDetecting ? "Checking for duplicates..." : "Duplicate Found!"}</AlertTitle>
                 <AlertDescription>
                   {isDetecting
                     ? "Our AI is checking if this influencer already exists in the repository."
-                    : `This profile might be a duplicate with ${Math.round((duplicateResult?.confidence || 0) * 100)}% confidence. Please review before proceeding.`}
+                    : `This influencer already exists. Please enter a different mobile number and PAN.`}
                 </AlertDescription>
               </Alert>
             )}
@@ -421,7 +428,7 @@ export default function AddInfluencerDialog({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isDetecting}>
+              <Button type="submit" disabled={isDetecting || !!duplicateResult}>
                 Add Influencer
               </Button>
             </DialogFooter>
@@ -431,3 +438,5 @@ export default function AddInfluencerDialog({
     </Dialog>
   );
 }
+
+    
