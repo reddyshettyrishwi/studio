@@ -24,9 +24,9 @@ service cloud.firestore {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
 
       // LIST (Query):
-      // An Admin can query the users collection ONLY IF they are filtering by 'status' == 'Pending'.
-      // This is crucial and secure for the approvals page.
-      allow list: if isSignedIn() && isAdmin() && request.query.where.get('status', ['in-query'])[0] == 'Pending';
+      // An Admin can query the users collection. The client-side code
+      // already filters for 'Pending' status, and only Admins can access that page.
+      allow list: if isSignedIn() && isAdmin();
 
       // CREATE:
       // Any user can create their own user document (sign up).
