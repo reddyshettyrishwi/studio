@@ -122,6 +122,11 @@ export const addInfluencer = async (db: Firestore, influencerData: Omit<Influenc
   return { id: docRef.id, ...influencerToAdd } as Influencer;
 };
 
+export const deleteInfluencer = async (db: Firestore, influencerId: string) => {
+    const influencerRef = doc(db, 'influencers', influencerId);
+    await deleteDoc(influencerRef);
+};
+
 export const logCampaign = async (db: Firestore, campaignData: Omit<Campaign, 'id'>) => {
   const campaignToAdd = {
     ...campaignData,

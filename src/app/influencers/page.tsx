@@ -21,7 +21,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Influencer, UserRole, Platform } from "@/lib/types";
-import { addInfluencer as addInfluencerToDb } from "@/lib/data";
+import { addInfluencer as addInfluencerToDb, deleteInfluencer } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -64,9 +64,23 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { useFirestore } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 
 const platformIcons: Record<Platform, React.ReactNode> = {
@@ -87,6 +101,7 @@ function InfluencersContent() {
   const initialName = searchParams.get('name') || "Jane Doe";
 
   const db = useFirestore();
+  const { toast } = useToast();
   const [initialInfluencers, setInitialInfluencers] = React.useState<Influencer[]>([]);
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -104,6 +119,8 @@ function InfluencersContent() {
   });
   
   const [isAddInfluencerOpen, setAddInfluencerOpen] = React.useState(false);
+  const [isConfirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
+  const [selectedInfluencer, setSelectedInfluencer] = React.useState<Influencer | null>(null);
 
   React.useEffect(() => {
     if (!db) return;
@@ -161,6 +178,26 @@ function InfluencersContent() {
     await addInfluencerToDb(db, newInfluencer);
   };
   
+  const handleDeleteInfluencer = async () => {
+    if (!db || !selectedInfluencer) return;
+    try {
+        await deleteInfluencer(db, selectedInfluencer.id);
+        toast({
+            title: "Influencer Deleted",
+            description: `${selectedInfluencer.name} has been removed from the repository.`,
+        });
+    } catch (error) {
+         toast({
+            title: "Error",
+            description: "Could not delete the influencer.",
+            variant: "destructive"
+        });
+    } finally {
+        setConfirmDeleteOpen(false);
+        setSelectedInfluencer(null);
+    }
+  };
+
   const isDataOutdated = (dateString: string) => {
     const date = new Date(dateString);
     // e.g. outdated if older than 6 months
@@ -315,9 +352,9 @@ function InfluencersContent() {
             {viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredInfluencers.map(influencer => (
-                  <Dialog key={influencer.id}>
+                  <Dialog key={influencer.id} onOpenChange={(open) => { if (!open) setSelectedInfluencer(null)}}>
                     <DialogTrigger asChild>
-                      <Card className="cursor-pointer transition-all hover:shadow-glow-primary">
+                      <Card className="cursor-pointer transition-all hover:shadow-glow-primary" onClick={() => setSelectedInfluencer(influencer)}>
                         <CardHeader>
                           <div className="flex flex-row items-center gap-4">
                             <Avatar className="h-12 w-12">
@@ -374,6 +411,14 @@ function InfluencersContent() {
                               <p><strong className="font-bold">Mobile:</strong> {maskSensitiveData(influencer.mobile, userRole)}</p>
                             </div>
                         </div>
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button variant="outline">Close</Button>
+                            </DialogClose>
+                             <AlertDialogTrigger asChild>
+                                <Button variant="destructive">Delete Influencer</Button>
+                            </AlertDialogTrigger>
+                        </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 ))}
@@ -441,7 +486,22 @@ function InfluencersContent() {
               onClose={() => setAddInfluencerOpen(false)}
               onAddInfluencer={addInfluencer}
             />
-
+            
+            <AlertDialog open={isConfirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the
+                        influencer <span className="font-bold">{selectedInfluencer?.name}</span> and remove their data from our servers.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setSelectedInfluencer(null)}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteInfluencer}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </main>
       </SidebarInset>
     </SidebarProvider>
