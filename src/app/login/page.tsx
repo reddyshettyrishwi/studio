@@ -1,6 +1,8 @@
 
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +21,20 @@ import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex min-h-screen flex-col items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </React.Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -154,14 +170,6 @@ export default function LoginPage() {
       isActive = false;
     };
   }, [authUser, isUserLoading, db, auth, router, toast, requestedRole]);
-
-  if (isUserLoading || authUser) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center">
