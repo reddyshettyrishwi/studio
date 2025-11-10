@@ -35,18 +35,20 @@ function MessagingContent() {
   const router = useRouter();
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
-  const initialName = searchParams.get('name') || "User";
+  const roleParam = (searchParams?.get('role') || "manager").toLowerCase();
+  const role = roleParam === "executive" ? "executive" : "manager";
+  const initialName = searchParams?.get('name') || "User";
   const [userName, setUserName] = React.useState<string>(initialName);
   
   React.useEffect(() => {
     if (!isUserLoading && !authUser) {
-      router.push('/login');
+      router.replace('/');
     }
   }, [authUser, isUserLoading, router]);
 
   const handleLogout = () => {
     auth?.signOut();
-    router.push('/login');
+    router.push('/');
   }
 
   if (isUserLoading || !authUser) {
@@ -61,7 +63,7 @@ function MessagingContent() {
             <div className="bg-primary/20 text-primary p-2 rounded-lg">
                 <Megaphone className="h-6 w-6" />
             </div>
-            <h1 className="text-xl font-headline font-semibold">InfluenceWise</h1>
+            <h1 className="text-xl font-headline font-semibold">Nxthub</h1>
           </div>
         </SidebarHeader>
 
@@ -83,7 +85,7 @@ function MessagingContent() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?name=${userName}`} className="w-full">
+              <Link href={`/dashboard?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
@@ -91,7 +93,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?name=${userName}`} className="w-full">
+              <Link href={`/influencers?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -99,7 +101,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?name=${userName}`} className="w-full">
+              <Link href={`/campaigns?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -107,7 +109,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/messaging?name=${userName}`} className="w-full">
+              <Link href={`/messaging?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <MessageSquare />
                   Messaging

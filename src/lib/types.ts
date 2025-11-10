@@ -30,6 +30,14 @@ export type Influencer = {
   avatar: string; // URL to image
 };
 
+export type CampaignCompletion = {
+  expectedReach: number;
+  outcomes: string;
+  reportedAt: string;
+  reportedBy: string;
+  reportedByName?: string;
+};
+
 export type Campaign = {
   id: string;
   name: string;
@@ -39,6 +47,7 @@ export type Campaign = {
   pricePaid: number;
   influencerId?: string;
   approvalStatus: ApprovalStatus;
+  completionDetails?: CampaignCompletion;
 };
 
 export type User = {

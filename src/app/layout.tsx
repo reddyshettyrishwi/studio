@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'InfluenceWise',
+  title: 'Nxthub',
   description: 'Centralized influencer portal for unified, verified, and always up-to-date data.',
 };
 

@@ -1,4 +1,4 @@
-# **App Name**: InfluenceWise
+# **App Name**: Nxthub
 
 ## Core Features:
 

@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { Influencer, Campaign, User } from './types';
+import type { Influencer, Campaign, CampaignCompletion, User } from './types';
 import {
   collection,
   query,
@@ -178,5 +178,31 @@ export const updateCampaignStatus = (db: Firestore, campaignId: string, status: 
           requestResourceData: { approvalStatus: status },
         })
       );
+  });
+};
+
+export const completeCampaign = (
+  db: Firestore,
+  campaignId: string,
+  completion: Omit<CampaignCompletion, 'reportedAt'>
+) => {
+  const campaignRef = doc(db, 'campaigns', campaignId);
+  const payload = {
+    approvalStatus: 'Completed',
+    completionDetails: {
+      ...completion,
+      reportedAt: Timestamp.now(),
+    },
+  };
+
+  setDoc(campaignRef, payload, { merge: true }).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: campaignRef.path,
+        operation: 'update',
+        requestResourceData: payload,
+      })
+    );
   });
 };

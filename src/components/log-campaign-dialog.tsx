@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, ShieldAlert } from "lucide-react";
-import type { Influencer } from "@/lib/types";
+import type { Campaign, Influencer } from "@/lib/types";
 import { alertOnPriceAnomalies, AlertOnPriceAnomaliesOutput } from "@/ai/flows/alert-on-price-anomalies";
 
 const campaignSchema = z.object({
@@ -51,7 +51,7 @@ type LogCampaignFormValues = z.infer<typeof campaignSchema>;
 interface LogCampaignDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogCampaign: (campaign: Omit<any, "id">) => void;
+  onLogCampaign: (campaign: Omit<Campaign, "id" | "approvalStatus">) => void;
   influencers: Influencer[];
 }
 
@@ -67,11 +67,19 @@ export default function LogCampaignDialog({
 
   const form = useForm<LogCampaignFormValues>({
     resolver: zodResolver(campaignSchema),
+    defaultValues: {
+      influencerId: undefined,
+      name: "",
+      department: "",
+      deliverables: "",
+      date: "",
+      pricePaid: undefined,
+    },
   });
 
   const { watch, getValues } = form;
   
-  const debounceTimeout = React.useRef<NodeJS.Timeout>();
+  const debounceTimeout = React.useRef<NodeJS.Timeout | undefined>();
 
   React.useEffect(() => {
     const subscription = watch((value, { name }) => {
@@ -83,30 +91,38 @@ export default function LogCampaignDialog({
     return () => subscription.unsubscribe();
   }, [watch, getValues, influencers]);
 
-  const handlePriceCheck = (influencerId?: string, pricePaid?: number) => {
-    clearTimeout(debounceTimeout.current);
-    const selectedInfluencer = influencers.find(i => i.id === influencerId);
-
-    if (selectedInfluencer && pricePaid && pricePaid > 0) {
-      debounceTimeout.current = setTimeout(async () => {
-        setIsCheckingPrice(true);
-        setPriceAnomaly(null);
-        try {
-          const result = await alertOnPriceAnomalies({
-            influencerName: selectedInfluencer.name,
-            proposedPrice: pricePaid,
-            previousPriceBenchmarks: selectedInfluencer.lastPricePaid ? [selectedInfluencer.lastPricePaid] : [],
-          });
-          if (result.isPriceTooHigh) {
-            setPriceAnomaly(result);
-          }
-        } catch (error) {
-          console.error("AI price anomaly check failed:", error);
-        } finally {
-          setIsCheckingPrice(false);
-        }
-      }, 1000);
+  const handlePriceCheck = (influencerId?: string, pricePaid?: number | string) => {
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
     }
+
+    const selectedInfluencer = influencers.find(i => i.id === influencerId);
+    const numericPrice = typeof pricePaid === "number" ? pricePaid : Number(pricePaid);
+
+    if (!selectedInfluencer || !Number.isFinite(numericPrice) || numericPrice <= 0) {
+      setIsCheckingPrice(false);
+      setPriceAnomaly(null);
+      return;
+    }
+
+    debounceTimeout.current = setTimeout(async () => {
+      setIsCheckingPrice(true);
+      setPriceAnomaly(null);
+      try {
+        const result = await alertOnPriceAnomalies({
+          influencerName: selectedInfluencer.name,
+          proposedPrice: numericPrice,
+          previousPriceBenchmarks: selectedInfluencer.lastPricePaid ? [selectedInfluencer.lastPricePaid] : [],
+        });
+        if (result.isPriceTooHigh) {
+          setPriceAnomaly(result);
+        }
+      } catch (error) {
+        console.error("AI price anomaly check failed:", error);
+      } finally {
+        setIsCheckingPrice(false);
+      }
+    }, 1000);
   };
 
   function onSubmit(data: LogCampaignFormValues) {
@@ -140,7 +156,11 @@ export default function LogCampaignDialog({
             <FormField name="influencerId" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Influencer (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value ?? undefined}
+                    defaultValue={field.value ?? undefined}
+                  >
                     <FormControl>
                       <SelectTrigger><SelectValue placeholder="Select an influencer" /></SelectTrigger>
                     </FormControl>
@@ -157,7 +177,16 @@ export default function LogCampaignDialog({
             <FormField name="name" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Campaign Name</FormLabel>
-                  <FormControl><Input placeholder="e.g., Summer 2024 Launch" {...field} /></FormControl>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., Summer 2024 Launch"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -165,23 +194,57 @@ export default function LogCampaignDialog({
             <FormField name="department" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Department</FormLabel>
-                  <FormControl><Input placeholder="e.g., Marketing" {...field} /></FormControl>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., Marketing"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-             <FormField name="pricePaid" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount (₹)</FormLabel>
-                    <FormControl><Input type="number" placeholder="400000" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              name="pricePaid"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount (₹)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="400000"
+                      value={field.value ?? ""}
+                      onChange={(event) => {
+                        const rawValue = event.target.value;
+                        field.onChange(rawValue === "" ? undefined : Number(rawValue));
+                      }}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField name="date" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Campaign Date</FormLabel>
-                  <FormControl><Input type="date" {...field} /></FormControl>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -189,7 +252,16 @@ export default function LogCampaignDialog({
             <FormField name="deliverables" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Deliverables</FormLabel>
-                  <FormControl><Textarea placeholder="e.g., 2 Instagram posts, 1 YouTube video" {...field} /></FormControl>
+                  <FormControl>
+                    <Textarea
+                      placeholder="e.g., 2 Instagram posts, 1 YouTube video"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -348,10 +348,26 @@ export default function AddInfluencerDialog({
                   </FormItem>
                 )}
               />
-              <FormField name="lastPricePaid" control={control} render={({ field }) => (
+              <FormField
+                name="lastPricePaid"
+                control={control}
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Last Price Paid (₹) (Optional)</FormLabel>
-                    <FormControl><Input type="number" placeholder="400000" {...field} /></FormControl>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="400000"
+                        value={field.value ?? ""}
+                        onChange={(event) => {
+                          const rawValue = event.target.value;
+                          field.onChange(rawValue === "" ? undefined : Number(rawValue));
+                        }}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

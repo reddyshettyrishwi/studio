@@ -92,7 +92,10 @@ const platformIcons: Record<Platform, React.ReactNode> = {
 function InfluencersContent() {
   const searchParams = useSearchParams()
   const router = useRouter();
-  const initialName = searchParams.get('name') || "User";
+  const roleParam = (searchParams?.get('role') || "manager").toLowerCase();
+  const role = roleParam === "executive" ? "executive" : "manager";
+  const isExecutive = role === "executive";
+  const initialName = searchParams?.get('name') || "User";
 
   const db = useFirestore();
   const auth = useAuth();
@@ -119,7 +122,7 @@ function InfluencersContent() {
 
   React.useEffect(() => {
     if (!isUserLoading && !authUser) {
-      router.push('/login');
+      router.replace('/');
     }
   }, [authUser, isUserLoading, router]);
 
@@ -182,7 +185,7 @@ function InfluencersContent() {
   }, [influencers, searchQuery, filters]);
 
   const addInfluencer = async (newInfluencer: Omit<Influencer, "id" | "avatar">) => {
-    if (!db) return;
+    if (!db || !isExecutive) return;
      try {
       await addInfluencerToDb(db, newInfluencer);
       toast({
@@ -221,7 +224,7 @@ function InfluencersContent() {
   
   const handleLogout = () => {
     auth?.signOut();
-    router.push('/login');
+    router.push('/');
   }
   
   if (isUserLoading || !authUser) {
@@ -236,7 +239,7 @@ function InfluencersContent() {
             <div className="bg-primary/20 text-primary p-2 rounded-lg">
                 <Megaphone className="h-6 w-6" />
             </div>
-            <h1 className="text-xl font-headline font-semibold">InfluenceWise</h1>
+            <h1 className="text-xl font-headline font-semibold">Nxthub</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -257,7 +260,7 @@ function InfluencersContent() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?name=${userName}`} className="w-full">
+              <Link href={`/dashboard?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
@@ -265,7 +268,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?name=${userName}`} className="w-full">
+              <Link href={`/influencers?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Users />
                   Influencers
@@ -273,7 +276,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?name=${userName}`} className="w-full">
+              <Link href={`/campaigns?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -281,7 +284,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
              <SidebarMenuItem>
-              <Link href={`/messaging?name=${userName}`} className="w-full">
+              <Link href={`/messaging?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
@@ -349,9 +352,11 @@ function InfluencersContent() {
                         </Button>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-2">
-                        <Button onClick={() => setAddInfluencerOpen(true)}><Plus className="mr-2"/>Add Influencer</Button>
-                    </div>
+                    {isExecutive && (
+                      <div className="hidden md:flex items-center gap-2">
+                          <Button onClick={() => setAddInfluencerOpen(true)}><Plus className="mr-2"/>Add Influencer</Button>
+                      </div>
+                    )}
                 </div>
             </div>
              <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
@@ -504,15 +509,19 @@ function InfluencersContent() {
             </AlertDialog>
 
 
-            <div className="fixed bottom-4 right-4 flex md:hidden flex-col gap-2">
-                <Button onClick={() => setAddInfluencerOpen(true)} size="icon" className="h-14 w-14 rounded-full shadow-lg"><Plus className="h-6 w-6"/></Button>
-            </div>
+            {isExecutive && (
+              <div className="fixed bottom-4 right-4 flex md:hidden flex-col gap-2">
+                  <Button onClick={() => setAddInfluencerOpen(true)} size="icon" className="h-14 w-14 rounded-full shadow-lg"><Plus className="h-6 w-6"/></Button>
+              </div>
+            )}
             
-            <AddInfluencerDialog
-              isOpen={isAddInfluencerOpen}
-              onClose={() => setAddInfluencerOpen(false)}
-              onAddInfluencer={addInfluencer}
-            />
+            {isExecutive && (
+              <AddInfluencerDialog
+                isOpen={isAddInfluencerOpen}
+                onClose={() => setAddInfluencerOpen(false)}
+                onAddInfluencer={addInfluencer}
+              />
+            )}
         </main>
       </SidebarInset>
     </SidebarProvider>

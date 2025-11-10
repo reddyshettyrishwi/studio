@@ -64,7 +64,9 @@ function DashboardContent() {
   const db = useFirestore();
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
-  const initialName = searchParams.get('name') || "User";
+  const roleParam = (searchParams?.get('role') || "manager").toLowerCase();
+  const role = roleParam === "executive" ? "executive" : "manager";
+  const initialName = searchParams?.get('name') || "User";
 
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
@@ -72,7 +74,7 @@ function DashboardContent() {
   
   React.useEffect(() => {
     if (!isUserLoading && !authUser) {
-      router.push('/login');
+      router.replace('/');
     }
   }, [authUser, isUserLoading, router]);
 
@@ -120,7 +122,7 @@ function DashboardContent() {
 
   const handleLogout = () => {
     auth?.signOut();
-    router.push('/login');
+    router.push('/');
   }
 
   // Analytics data
@@ -150,7 +152,7 @@ function DashboardContent() {
             <div className="bg-primary/20 text-primary p-2 rounded-lg">
                 <Megaphone className="h-6 w-6" />
             </div>
-            <h1 className="text-xl font-headline font-semibold">InfluenceWise</h1>
+            <h1 className="text-xl font-headline font-semibold">Nxthub</h1>
           </div>
         </SidebarHeader>
 
@@ -172,7 +174,7 @@ function DashboardContent() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?name=${userName}`} className="w-full">
+              <Link href={`/dashboard?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Home />
                   Dashboard
@@ -180,7 +182,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?name=${userName}`} className="w-full">
+              <Link href={`/influencers?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -188,7 +190,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?name=${userName}`} className="w-full">
+              <Link href={`/campaigns?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -196,7 +198,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/messaging?name=${userName}`} className="w-full">
+              <Link href={`/messaging?name=${userName}&role=${role}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
