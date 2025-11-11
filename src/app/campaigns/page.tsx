@@ -54,6 +54,7 @@ import CompleteCampaignDialog, {
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useAuth } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import ViewingAsIndicator from "@/components/viewing-as-indicator";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -87,11 +88,6 @@ const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
 function CampaignsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const roleParam = (searchParams?.get('role') || "manager").toLowerCase();
-  const role = roleParam === "executive" ? "executive" : "manager";
-  const isExecutive = role === "executive";
-  const isManager = role === "manager";
-  const initialName = searchParams?.get('name') || "User";
 
   const db = useFirestore();
   const auth = useAuth();
@@ -100,7 +96,27 @@ function CampaignsContent() {
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLogCampaignOpen, setLogCampaignOpen] = React.useState(false);
-  const [userName] = React.useState<string>(initialName);
+  const [userName, setUserName] = React.useState<string>("User");
+  const [role, setRole] = React.useState<"manager" | "executive">("manager");
+  const isExecutive = role === "executive";
+  const isManager = role === "manager";
+
+  React.useEffect(() => {
+    if (!searchParams) return;
+    const nextRoleParam = (searchParams.get('role') || 'manager').toLowerCase();
+    const nextRole = nextRoleParam === 'executive' ? 'executive' : 'manager';
+    setRole(prev => (prev === nextRole ? prev : nextRole));
+
+    const nextName = searchParams.get('name') || 'User';
+    setUserName(prev => (prev === nextName ? prev : nextName));
+  }, [searchParams]);
+
+  const queryString = React.useMemo(() => {
+    const params = new URLSearchParams({ name: userName, role });
+    return params.toString();
+  }, [role, userName]);
+
+  const dashboardHref = React.useMemo(() => `/dashboard?${queryString}`, [queryString]);
   const [isCompletionDialogOpen, setCompletionDialogOpen] = React.useState(false);
   const [completionCampaignId, setCompletionCampaignId] = React.useState<string | null>(null);
 
@@ -220,12 +236,12 @@ function CampaignsContent() {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-           <div className="flex items-center gap-2">
+          <Link href={dashboardHref} className="flex items-center gap-2" prefetch={false}>
             <div className="bg-primary/20 text-primary p-2 rounded-lg">
                 <Megaphone className="h-6 w-6" />
             </div>
             <h1 className="text-xl font-headline font-semibold">Nxthub</h1>
-          </div>
+          </Link>
         </SidebarHeader>
 
         <SidebarContent>
@@ -246,7 +262,7 @@ function CampaignsContent() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?name=${userName}&role=${role}`} className="w-full">
+              <Link href={dashboardHref} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
@@ -254,7 +270,7 @@ function CampaignsContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/influencers?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -262,7 +278,7 @@ function CampaignsContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/campaigns?${queryString}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Megaphone />
                   Campaigns
@@ -270,7 +286,7 @@ function CampaignsContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/messaging?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/messaging?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
@@ -292,28 +308,31 @@ function CampaignsContent() {
       </Sidebar>
       <SidebarInset className="max-h-screen overflow-auto">
         <main className="p-4 md:p-6">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
-                <div className="flex items-center gap-4">
-                    <SidebarTrigger className="md:hidden" />
-                    <h2 className="text-3xl font-headline font-bold tracking-tight">Campaigns</h2>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                    <div className="relative w-full md:w-auto grow">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search by campaign name..." 
-                            className="pl-9 w-full md:w-64" 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    {isExecutive && (
-                      <Button onClick={() => setLogCampaignOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" /> Create Campaign
-                      </Button>
-                    )}
-                </div>
-            </div>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+          <div className="flex items-center gap-4">
+            <SidebarTrigger className="md:hidden" />
+            <h2 className="text-3xl font-headline font-bold tracking-tight">Campaigns</h2>
+          </div>
+          <ViewingAsIndicator role={role} className="self-start md:self-auto" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="relative w-full md:w-auto grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by campaign name..." 
+              className="pl-9 w-full md:w-64" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {isExecutive && (
+            <Button onClick={() => setLogCampaignOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Create Campaign
+            </Button>
+          )}
+        </div>
+      </div>
             
             <Card>
               <Table>

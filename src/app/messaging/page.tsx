@@ -29,16 +29,32 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth, useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
+import ViewingAsIndicator from "@/components/viewing-as-indicator";
 
 function MessagingContent() {
   const searchParams = useSearchParams()
   const router = useRouter();
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
-  const roleParam = (searchParams?.get('role') || "manager").toLowerCase();
-  const role = roleParam === "executive" ? "executive" : "manager";
-  const initialName = searchParams?.get('name') || "User";
-  const [userName, setUserName] = React.useState<string>(initialName);
+  const [role, setRole] = React.useState<"manager" | "executive">("manager");
+  const [userName, setUserName] = React.useState<string>("User");
+
+  const queryString = React.useMemo(() => {
+    const params = new URLSearchParams({ name: userName, role });
+    return params.toString();
+  }, [role, userName]);
+
+  const dashboardHref = React.useMemo(() => `/dashboard?${queryString}`, [queryString]);
+
+  React.useEffect(() => {
+    if (!searchParams) return;
+    const nextRoleParam = (searchParams.get('role') || 'manager').toLowerCase();
+    const nextRole = nextRoleParam === 'executive' ? 'executive' : 'manager';
+    setRole(prev => (prev === nextRole ? prev : nextRole));
+
+    const nextName = searchParams.get('name') || 'User';
+    setUserName(prev => (prev === nextName ? prev : nextName));
+  }, [searchParams]);
   
   React.useEffect(() => {
     if (!isUserLoading && !authUser) {
@@ -59,12 +75,12 @@ function MessagingContent() {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-           <div className="flex items-center gap-2">
+          <Link href={dashboardHref} className="flex items-center gap-2" prefetch={false}>
             <div className="bg-primary/20 text-primary p-2 rounded-lg">
                 <Megaphone className="h-6 w-6" />
             </div>
             <h1 className="text-xl font-headline font-semibold">Nxthub</h1>
-          </div>
+          </Link>
         </SidebarHeader>
 
         <SidebarContent>
@@ -85,7 +101,7 @@ function MessagingContent() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?name=${userName}&role=${role}`} className="w-full">
+              <Link href={dashboardHref} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
@@ -93,7 +109,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/influencers?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -101,7 +117,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/campaigns?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -109,7 +125,7 @@ function MessagingContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/messaging?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/messaging?${queryString}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <MessageSquare />
                   Messaging
@@ -131,12 +147,13 @@ function MessagingContent() {
       </Sidebar>
       <SidebarInset className="max-h-screen overflow-auto">
         <main className="p-4 md:p-6 relative">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
-                <div className="flex items-center gap-4">
-                    <SidebarTrigger className="md:hidden" />
-                    <h2 className="text-3xl font-headline font-bold tracking-tight">Messaging</h2>
-                </div>
-            </div>
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
+        <div className="flex items-center gap-4">
+          <SidebarTrigger className="md:hidden" />
+          <h2 className="text-3xl font-headline font-bold tracking-tight">Messaging</h2>
+        </div>
+        <ViewingAsIndicator role={role} className="self-start md:self-auto" />
+      </div>
             
             <Card>
               <CardHeader>

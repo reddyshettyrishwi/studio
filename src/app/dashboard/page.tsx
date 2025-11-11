@@ -42,6 +42,7 @@ import { format, parseISO } from "date-fns";
 import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useAuth } from "@/firebase";
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
+import ViewingAsIndicator from "@/components/viewing-as-indicator";
 
 const StatusBadge = ({ status }: { status: ApprovalStatus }) => {
   const variant = {
@@ -64,13 +65,28 @@ function DashboardContent() {
   const db = useFirestore();
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
-  const roleParam = (searchParams?.get('role') || "manager").toLowerCase();
-  const role = roleParam === "executive" ? "executive" : "manager";
-  const initialName = searchParams?.get('name') || "User";
 
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
-  const [userName, setUserName] = React.useState<string>(initialName);
+  const [userName, setUserName] = React.useState<string>("User");
+  const [role, setRole] = React.useState<"manager" | "executive">("manager");
+
+  React.useEffect(() => {
+    if (!searchParams) return;
+    const nextRoleParam = (searchParams.get('role') || 'manager').toLowerCase();
+    const nextRole = nextRoleParam === 'executive' ? 'executive' : 'manager';
+    setRole(prev => (prev === nextRole ? prev : nextRole));
+
+    const nextName = searchParams.get('name') || 'User';
+    setUserName(prev => (prev === nextName ? prev : nextName));
+  }, [searchParams]);
+
+  const queryString = React.useMemo(() => {
+    const params = new URLSearchParams({ name: userName, role });
+    return params.toString();
+  }, [role, userName]);
+
+  const dashboardHref = React.useMemo(() => `/dashboard?${queryString}`, [queryString]);
   
   React.useEffect(() => {
     if (!isUserLoading && !authUser) {
@@ -148,12 +164,12 @@ function DashboardContent() {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-           <div className="flex items-center gap-2">
+          <Link href={dashboardHref} className="flex items-center gap-2" prefetch={false}>
             <div className="bg-primary/20 text-primary p-2 rounded-lg">
-                <Megaphone className="h-6 w-6" />
+              <Megaphone className="h-6 w-6" />
             </div>
             <h1 className="text-xl font-headline font-semibold">Nxthub</h1>
-          </div>
+          </Link>
         </SidebarHeader>
 
         <SidebarContent>
@@ -174,7 +190,7 @@ function DashboardContent() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?name=${userName}&role=${role}`} className="w-full">
+              <Link href={dashboardHref} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Home />
                   Dashboard
@@ -182,7 +198,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/influencers?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Users />
                   Influencers
@@ -190,7 +206,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/campaigns?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -198,7 +214,7 @@ function DashboardContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/messaging?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/messaging?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
@@ -220,12 +236,13 @@ function DashboardContent() {
       </Sidebar>
       <SidebarInset className="max-h-screen overflow-auto">
         <main className="p-4 md:p-6 relative">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
-                <div className="flex items-center gap-4">
-                    <SidebarTrigger className="md:hidden" />
-                    <h2 className="text-3xl font-headline font-bold tracking-tight">Dashboard</h2>
-                </div>
-            </div>
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
+        <div className="flex items-center gap-4">
+          <SidebarTrigger className="md:hidden" />
+          <h2 className="text-3xl font-headline font-bold tracking-tight">Dashboard</h2>
+        </div>
+        <ViewingAsIndicator role={role} className="self-start md:self-auto" />
+      </div>
 
             {/* Analytics Section */}
             <div className="grid gap-4 md:grid-cols-3 mb-6">

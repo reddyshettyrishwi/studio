@@ -78,20 +78,10 @@ export default function LogCampaignDialog({
   });
 
   const { watch, getValues } = form;
-  
-  const debounceTimeout = React.useRef<NodeJS.Timeout | undefined>();
 
-  React.useEffect(() => {
-    const subscription = watch((value, { name }) => {
-        if (name === 'influencerId' || name === 'pricePaid') {
-            const { influencerId, pricePaid } = getValues();
-            handlePriceCheck(influencerId, pricePaid);
-        }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch, getValues, influencers]);
+  const debounceTimeout = React.useRef<ReturnType<typeof setTimeout> | undefined>();
 
-  const handlePriceCheck = (influencerId?: string, pricePaid?: number | string) => {
+  const handlePriceCheck = React.useCallback((influencerId?: string, pricePaid?: number | string) => {
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
@@ -123,7 +113,17 @@ export default function LogCampaignDialog({
         setIsCheckingPrice(false);
       }
     }, 1000);
-  };
+  }, [influencers]);
+
+  React.useEffect(() => {
+    const subscription = watch((value, { name }) => {
+        if (name === 'influencerId' || name === 'pricePaid') {
+            const { influencerId, pricePaid } = getValues();
+            handlePriceCheck(influencerId, pricePaid);
+        }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, getValues, handlePriceCheck]);
 
   function onSubmit(data: LogCampaignFormValues) {
     onLogCampaign({ ...data });

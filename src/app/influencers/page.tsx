@@ -82,6 +82,7 @@ import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useAuth 
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import ViewingAsIndicator from "@/components/viewing-as-indicator";
 
 
 const platformIcons: Record<Platform, React.ReactNode> = {
@@ -92,11 +93,6 @@ const platformIcons: Record<Platform, React.ReactNode> = {
 function InfluencersContent() {
   const searchParams = useSearchParams()
   const router = useRouter();
-  const roleParam = (searchParams?.get('role') || "manager").toLowerCase();
-  const role = roleParam === "executive" ? "executive" : "manager";
-  const isExecutive = role === "executive";
-  const initialName = searchParams?.get('name') || "User";
-
   const db = useFirestore();
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
@@ -105,7 +101,26 @@ function InfluencersContent() {
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "table">("grid");
-  const [userName, setUserName] = React.useState<string>(initialName);
+  const [userName, setUserName] = React.useState<string>("User");
+  const [role, setRole] = React.useState<"manager" | "executive">("manager");
+  const isExecutive = role === "executive";
+
+  const queryString = React.useMemo(() => {
+    const params = new URLSearchParams({ name: userName, role });
+    return params.toString();
+  }, [role, userName]);
+
+  const dashboardHref = React.useMemo(() => `/dashboard?${queryString}`, [queryString]);
+
+  React.useEffect(() => {
+    if (!searchParams) return;
+    const nextRoleParam = (searchParams.get('role') || 'manager').toLowerCase();
+    const nextRole = nextRoleParam === 'executive' ? 'executive' : 'manager';
+    setRole(prev => (prev === nextRole ? prev : nextRole));
+
+    const nextName = searchParams.get('name') || 'User';
+    setUserName(prev => (prev === nextName ? prev : nextName));
+  }, [searchParams]);
 
 
   const [filters, setFilters] = React.useState<{
@@ -235,12 +250,12 @@ function InfluencersContent() {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
+          <Link href={dashboardHref} className="flex items-center gap-2" prefetch={false}>
             <div className="bg-primary/20 text-primary p-2 rounded-lg">
                 <Megaphone className="h-6 w-6" />
             </div>
             <h1 className="text-xl font-headline font-semibold">Nxthub</h1>
-          </div>
+          </Link>
         </SidebarHeader>
         <SidebarContent>
            <div className="p-4">
@@ -260,7 +275,7 @@ function InfluencersContent() {
             <SidebarSeparator />
           <SidebarMenu>
             <SidebarMenuItem>
-              <Link href={`/dashboard?name=${userName}&role=${role}`} className="w-full">
+              <Link href={dashboardHref} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Home />
                   Dashboard
@@ -268,7 +283,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/influencers?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/influencers?${queryString}`} className="w-full">
                 <SidebarMenuButton isActive size="lg">
                   <Users />
                   Influencers
@@ -276,7 +291,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <Link href={`/campaigns?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/campaigns?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <Megaphone />
                   Campaigns
@@ -284,7 +299,7 @@ function InfluencersContent() {
               </Link>
             </SidebarMenuItem>
              <SidebarMenuItem>
-              <Link href={`/messaging?name=${userName}&role=${role}`} className="w-full">
+              <Link href={`/messaging?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
                   Messaging
@@ -306,59 +321,62 @@ function InfluencersContent() {
       </Sidebar>
       <SidebarInset className="max-h-screen overflow-auto">
         <main className="p-4 md:p-6 relative">
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
-                <div className="flex items-center gap-4">
-                    <SidebarTrigger className="md:hidden" />
-                    <h2 className="text-3xl font-headline font-bold tracking-tight">Influencers</h2>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                    <div className="relative w-full md:w-auto grow">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Search by name or handle..." 
-                            className="pl-9 w-full md:w-64" 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+          <div className="flex items-center gap-4">
+            <SidebarTrigger className="md:hidden" />
+            <h2 className="text-3xl font-headline font-bold tracking-tight">Influencers</h2>
+          </div>
+          <ViewingAsIndicator role={role} className="self-start md:self-auto" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <div className="relative w-full md:w-auto grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by name or handle..." 
+              className="pl-9 w-full md:w-64" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
                     
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full md:w-auto justify-start">
-                          <Filter className="mr-2 h-4 w-4"/>
-                          Filters
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56" align="end">
-                        <DropdownMenuLabel>Category</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {categories.map(cat => (
-                            <DropdownMenuCheckboxItem key={cat} checked={filters.category.has(cat)} onCheckedChange={() => handleFilterChange('category', cat)}>{cat}</DropdownMenuCheckboxItem>
-                        ))}
-                         <DropdownMenuLabel>Language</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {languages.map(lang => (
-                            <DropdownMenuCheckboxItem key={lang} checked={filters.language.has(lang)} onCheckedChange={() => handleFilterChange('language', lang)}>{lang}</DropdownMenuCheckboxItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full md:w-auto justify-start">
+              <Filter className="mr-2 h-4 w-4"/>
+              Filters
+            </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuLabel>Category</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {categories.map(cat => (
+              <DropdownMenuCheckboxItem key={cat} checked={filters.category.has(cat)} onCheckedChange={() => handleFilterChange('category', cat)}>{cat}</DropdownMenuCheckboxItem>
+            ))}
+             <DropdownMenuLabel>Language</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {languages.map(lang => (
+              <DropdownMenuCheckboxItem key={lang} checked={filters.language.has(lang)} onCheckedChange={() => handleFilterChange('language', lang)}>{lang}</DropdownMenuCheckboxItem>
+            ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-                    <div className="flex items-center gap-1 bg-secondary/50 backdrop-blur-sm p-1 rounded-md">
-                        <Button variant={viewMode === 'grid' ? "secondary" : "ghost"} size="icon" onClick={() => setViewMode('grid')}>
-                            <LayoutGrid className="h-5 w-5"/>
-                        </Button>
-                        <Button variant={viewMode === 'table' ? "secondary" : "ghost"} size="icon" onClick={() => setViewMode('table')}>
-                            <List className="h-5 w-5"/>
-                        </Button>
-                    </div>
+          <div className="flex items-center gap-1 bg-secondary/50 backdrop-blur-sm p-1 rounded-md">
+            <Button variant={viewMode === 'grid' ? "secondary" : "ghost"} size="icon" onClick={() => setViewMode('grid')}>
+              <LayoutGrid className="h-5 w-5"/>
+            </Button>
+            <Button variant={viewMode === 'table' ? "secondary" : "ghost"} size="icon" onClick={() => setViewMode('table')}>
+              <List className="h-5 w-5"/>
+            </Button>
+          </div>
 
-                    {isExecutive && (
-                      <div className="hidden md:flex items-center gap-2">
-                          <Button onClick={() => setAddInfluencerOpen(true)}><Plus className="mr-2"/>Add Influencer</Button>
-                      </div>
-                    )}
-                </div>
+          {isExecutive && (
+            <div className="hidden md:flex items-center gap-2">
+              <Button onClick={() => setAddInfluencerOpen(true)}><Plus className="mr-2"/>Add Influencer</Button>
             </div>
+          )}
+        </div>
+      </div>
              <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
                 <div className="text-sm text-muted-foreground">
                     {filteredInfluencers.length} influencers found.

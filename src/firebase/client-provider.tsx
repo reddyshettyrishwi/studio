@@ -1,7 +1,7 @@
 'use client';
 
 import React, { type ReactNode } from 'react';
-import { FirebaseProvider } from '@/firebase/provider';
+import { FirebaseContext, FirebaseProvider, type FirebaseContextState } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 
 interface FirebaseClientProviderProps {
@@ -33,7 +33,21 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   }, [services]);
 
   if (!services) {
-    return null;
+    const fallbackContext: FirebaseContextState = {
+      areServicesAvailable: false,
+      firebaseApp: null,
+      firestore: null,
+      auth: null,
+      user: null,
+      isUserLoading: true,
+      userError: null,
+    };
+
+    return (
+      <FirebaseContext.Provider value={fallbackContext}>
+        {children}
+      </FirebaseContext.Provider>
+    );
   }
 
   return (

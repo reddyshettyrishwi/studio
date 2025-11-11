@@ -17,8 +17,8 @@ export default {
         'glow-primary': '0 0 20px 0px hsl(var(--primary) / 0.6)',
       },
       fontFamily: {
-        body: ['Roboto', 'sans-serif'],
-        headline: ['Roboto', 'sans-serif'],
+        body: ['var(--font-roboto)', 'system-ui', 'sans-serif'],
+        headline: ['var(--font-roboto)', 'system-ui', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
