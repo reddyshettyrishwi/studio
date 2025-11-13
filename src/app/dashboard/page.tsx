@@ -217,7 +217,7 @@ function DashboardContent() {
               <Link href={`/messaging?${queryString}`} className="w-full">
                 <SidebarMenuButton size="lg">
                   <MessageSquare />
-                  Messaging
+                  Messages
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>
