@@ -98,8 +98,9 @@ function CampaignsContent() {
   const [isLogCampaignOpen, setLogCampaignOpen] = React.useState(false);
   const [userName, setUserName] = React.useState<string>("User");
   const [role, setRole] = React.useState<"manager" | "executive">("manager");
-  const isExecutive = role === "executive";
-  const isManager = role === "manager";
+    const isExecutive = role === "executive";
+    const isManager = role === "manager";
+    const canManageCampaigns = role === "executive" || role === "manager";
 
   React.useEffect(() => {
     if (!searchParams) return;
@@ -197,7 +198,7 @@ function CampaignsContent() {
   }
   
   const logCampaign = (newCampaign: Omit<Campaign, 'id' | 'approvalStatus'>) => {
-    if (!db || !isExecutive) return;
+    if (!db || !canManageCampaigns) return;
     logCampaignToDb(db, {
       ...newCampaign,
       approvalStatus: 'Pending',
@@ -217,7 +218,7 @@ function CampaignsContent() {
   };
 
   const handleCompletionSubmit = (values: CompleteCampaignFormValues) => {
-    if (!db || !isExecutive || !completionCampaign) return;
+    if (!db || !canManageCampaigns || !completionCampaign) return;
     completeCampaignInDb(db, completionCampaign.id, {
       expectedReach: values.expectedReach,
       outcomes: values.outcomes,
@@ -326,7 +327,7 @@ function CampaignsContent() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          {isExecutive && (
+                    {canManageCampaigns && (
             <Button onClick={() => setLogCampaignOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Create Campaign
             </Button>
@@ -345,7 +346,7 @@ function CampaignsContent() {
                     <TableHead>Date</TableHead>
                     <TableHead>Deliverables</TableHead>
                     <TableHead>Approval Status</TableHead>
-                    {isExecutive && <TableHead>Completion</TableHead>}
+                    {canManageCampaigns && <TableHead>Completion</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -414,7 +415,7 @@ function CampaignsContent() {
                             <StatusBadge status={campaign.approvalStatus} />
                           )}
                         </TableCell>
-                        {isExecutive && (
+                        {canManageCampaigns && (
                           <TableCell>
                             {campaign.approvalStatus === "Completed" && campaign.completionDetails ? (
                               <div className="space-y-1 text-sm">
@@ -469,7 +470,7 @@ function CampaignsContent() {
             </Card>
         </main>
       </SidebarInset>
-           {isExecutive && (
+           {canManageCampaigns && (
              <LogCampaignDialog
                 isOpen={isLogCampaignOpen}
                 onClose={() => setLogCampaignOpen(false)}
@@ -477,7 +478,7 @@ function CampaignsContent() {
                 influencers={influencers}
               />
            )}
-           {isExecutive && (
+           {canManageCampaigns && (
              <CompleteCampaignDialog
                campaign={completionCampaign}
                isOpen={isCompletionDialogOpen}

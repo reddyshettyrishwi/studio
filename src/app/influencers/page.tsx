@@ -104,6 +104,7 @@ function InfluencersContent() {
   const [userName, setUserName] = React.useState<string>("User");
   const [role, setRole] = React.useState<"manager" | "executive">("manager");
   const isExecutive = role === "executive";
+  const canManageInfluencers = role === "executive" || role === "manager";
 
   const queryString = React.useMemo(() => {
     const params = new URLSearchParams({ name: userName, role });
@@ -200,7 +201,7 @@ function InfluencersContent() {
   }, [influencers, searchQuery, filters]);
 
   const addInfluencer = async (newInfluencer: Omit<Influencer, "id" | "avatar">) => {
-    if (!db || !isExecutive) return;
+    if (!db || !canManageInfluencers) return;
      try {
       await addInfluencerToDb(db, newInfluencer);
       toast({
@@ -370,7 +371,7 @@ function InfluencersContent() {
             </Button>
           </div>
 
-          {isExecutive && (
+                    {canManageInfluencers && (
             <div className="hidden md:flex items-center gap-2">
               <Button onClick={() => setAddInfluencerOpen(true)}><Plus className="mr-2"/>Add Influencer</Button>
             </div>
@@ -527,13 +528,13 @@ function InfluencersContent() {
             </AlertDialog>
 
 
-            {isExecutive && (
+            {canManageInfluencers && (
               <div className="fixed bottom-4 right-4 flex md:hidden flex-col gap-2">
                   <Button onClick={() => setAddInfluencerOpen(true)} size="icon" className="h-14 w-14 rounded-full shadow-lg"><Plus className="h-6 w-6"/></Button>
               </div>
             )}
             
-            {isExecutive && (
+            {canManageInfluencers && (
               <AddInfluencerDialog
                 isOpen={isAddInfluencerOpen}
                 onClose={() => setAddInfluencerOpen(false)}
