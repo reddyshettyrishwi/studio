@@ -599,30 +599,32 @@ function InfluencersContent() {
                                 </div>
                             </div>
                              <DialogFooter className="justify-between">
-                                {influencer.createdById === userId ? (
-                                  <DialogClose asChild>
-                                    <Button
-                                      variant="outline"
-                                      onClick={() => {
-                                        setInfluencerBeingEdited(influencer);
-                                        setEditDialogOpen(true);
-                                      }}
-                                    >
-                                      <PenLine className="mr-2 h-4 w-4" />
-                                      Edit
-                                    </Button>
-                                  </DialogClose>
-                                ) : <span />}
-                                <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="destructive"
-                                      size="icon"
-                                      className="rounded-full"
-                                      onClick={() => setSelectedInfluencer(influencer)}
-                                    >
+                                {activeTab === "mine" && influencer.createdById === userId ? (
+                                  <>
+                                    <DialogClose asChild>
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                          setInfluencerBeingEdited(influencer);
+                                          setEditDialogOpen(true);
+                                        }}
+                                      >
+                                        <PenLine className="mr-2 h-4 w-4" />
+                                        Edit
+                                      </Button>
+                                    </DialogClose>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        className="rounded-full"
+                                        onClick={() => setSelectedInfluencer(influencer)}
+                                      >
                                         <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </AlertDialogTrigger>
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                  </>
+                                ) : null}
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -689,29 +691,29 @@ function InfluencersContent() {
                                         </TableCell>
                                         <TableCell>
                                           <div className="flex items-center gap-2">
-                                            {influencer.createdById === userId && (
-                                              <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                  setInfluencerBeingEdited(influencer);
-                                                  setEditDialogOpen(true);
-                                                }}
-                                              >
-                                                <PenLine className="mr-1 h-4 w-4" /> Edit
-                                              </Button>
-                                            )}
-                                            {canManageInfluencers && (
-                                              <AlertDialogTrigger asChild>
+                                            {activeTab === "mine" && influencer.createdById === userId ? (
+                                              <>
                                                 <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  onClick={() => setSelectedInfluencer(influencer)}
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={() => {
+                                                    setInfluencerBeingEdited(influencer);
+                                                    setEditDialogOpen(true);
+                                                  }}
                                                 >
-                                                  <Trash2 className="h-4 w-4" />
+                                                  <PenLine className="mr-1 h-4 w-4" /> Edit
                                                 </Button>
-                                              </AlertDialogTrigger>
-                                            )}
+                                                <AlertDialogTrigger asChild>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setSelectedInfluencer(influencer)}
+                                                  >
+                                                    <Trash2 className="h-4 w-4" />
+                                                  </Button>
+                                                </AlertDialogTrigger>
+                                              </>
+                                            ) : null}
                                           </div>
                                         </TableCell>
                                     </TableRow>

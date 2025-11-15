@@ -71,7 +71,9 @@ const influencerSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   countryCode: z.string().regex(/^\+\d{1,4}$/u, "Select a country code."),
   mobile: z.string().regex(/^\d{7,15}$/u, "Enter digits only (7-15)."),
-  pan: z.string().min(1, "PAN/Legal ID is required."),
+  pan: z
+    .string()
+    .regex(/^[A-Z]{5}\d{4}[A-Z]$/u, "Enter a valid 10-character PAN (e.g., ABCDE1234F)."),
   lastPromotionBy: z.enum(DEPARTMENT_OPTIONS, {
     required_error: "Select the department that led the last promotion.",
   }),
@@ -154,7 +156,7 @@ const convertInfluencerToFormValues = (influencer: Influencer): Partial<AddInflu
     email: influencer.email,
     mobile,
     countryCode,
-    pan: influencer.pan,
+    pan: (influencer.pan ?? "").toUpperCase(),
     category: normalizedCategory,
     languages: influencer.languages ?? [],
     lastPromotionBy: (DEPARTMENT_OPTIONS.includes(influencer.lastPromotionBy as (typeof DEPARTMENT_OPTIONS)[number])
@@ -267,7 +269,7 @@ export default function AddInfluencerDialog({
       name: data.name.trim(),
       email: data.email.trim(),
       mobile: `${data.countryCode}${sanitizedMobile}`,
-      pan: data.pan.trim(),
+      pan: data.pan.trim().toUpperCase(),
       category: data.category,
       languages: data.languages,
       lastPromotionBy: data.lastPromotionBy,
@@ -420,10 +422,23 @@ export default function AddInfluencerDialog({
                   );
                 }}
               />
-              <FormField name="pan" control={control} render={({ field }) => (
+              <FormField
+                name="pan"
+                control={control}
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel>PAN / Legal ID</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormLabel>PAN</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="ABCDE1234F"
+                        maxLength={10}
+                        onChange={(event) => {
+                          const nextValue = event.target.value.toUpperCase().replace(/[^A-Z0-9]/gu, "");
+                          field.onChange(nextValue);
+                        }}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

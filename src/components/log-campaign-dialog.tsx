@@ -33,16 +33,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, CalendarIcon } from "lucide-react";
 import type { Campaign, Influencer } from "@/lib/types";
+import { DEPARTMENT_OPTIONS } from "@/lib/options";
 import { alertOnPriceAnomalies, AlertOnPriceAnomaliesOutput } from "@/ai/flows/alert-on-price-anomalies";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const campaignSchema = z.object({
   influencerId: z.string().optional(),
   name: z.string().min(2, "Campaign name is required."),
-  department: z.string().min(1, "Department is required."),
+  department: z.enum(DEPARTMENT_OPTIONS, {
+    required_error: "Select a department.",
+  }),
   deliverables: z.string().min(1, "Deliverables are required."),
-  date: z.string().min(1, "Campaign date is required."),
+  date: z.date({
+    required_error: "Campaign date is required.",
+  }),
   pricePaid: z.coerce.number().positive("Amount must be a positive number."),
 });
 
@@ -70,9 +79,9 @@ export default function LogCampaignDialog({
     defaultValues: {
       influencerId: undefined,
       name: "",
-      department: "",
+      department: DEPARTMENT_OPTIONS[0],
       deliverables: "",
-      date: "",
+      date: undefined,
       pricePaid: undefined,
     },
   });
@@ -126,7 +135,10 @@ export default function LogCampaignDialog({
   }, [watch, getValues, handlePriceCheck]);
 
   function onSubmit(data: LogCampaignFormValues) {
-    onLogCampaign({ ...data });
+    onLogCampaign({
+      ...data,
+      date: format(data.date, "yyyy-MM-dd"),
+    });
     toast({
       title: "Campaign Logged!",
       description: `${data.name} has been added to the campaign records.`,
@@ -191,19 +203,26 @@ export default function LogCampaignDialog({
                 </FormItem>
               )}
             />
-            <FormField name="department" control={form.control} render={({ field }) => (
+            <FormField
+              name="department"
+              control={form.control}
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Department</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., Marketing"
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                    />
-                  </FormControl>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {DEPARTMENT_OPTIONS.map((department) => (
+                        <SelectItem key={department} value={department}>
+                          {department}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -232,19 +251,37 @@ export default function LogCampaignDialog({
                 </FormItem>
               )}
             />
-            <FormField name="date" control={form.control} render={({ field }) => (
-                <FormItem>
+            <FormField
+              name="date"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
                   <FormLabel>Campaign Date</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="date"
-                      value={field.value}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      name={field.name}
-                      ref={field.ref}
-                    />
-                  </FormControl>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-between text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? format(field.value, "PPP") : <span>Select a date</span>}
+                          <CalendarIcon className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(value) => field.onChange(value ?? undefined)}
+                        disabled={(date) => date > new Date() || date < new Date("2000-01-01")}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
