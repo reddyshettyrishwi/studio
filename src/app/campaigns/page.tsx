@@ -13,8 +13,11 @@ import {
   Users,
   Home,
   UserRound,
+  Filter,
+  X,
 } from "lucide-react";
 import { Campaign, Influencer, ApprovalStatus } from "@/lib/types";
+import { DEPARTMENT_OPTIONS } from "@/lib/options";
 import {
   logCampaign as logCampaignToDb,
   updateCampaignStatus,
@@ -46,7 +49,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
+import { endOfDay, format, isValid, parseISO, startOfDay } from "date-fns";
 import LogCampaignDialog from "@/components/log-campaign-dialog";
 import CompleteCampaignDialog, {
   CompleteCampaignFormValues,
@@ -55,6 +58,7 @@ import { useFirestore, useUser, errorEmitter, FirestorePermissionError, useAuth 
 import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import ViewingAsIndicator from "@/components/viewing-as-indicator";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -64,6 +68,10 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Check, ChevronDown } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 
 const STATUS_METADATA: Record<ApprovalStatus, { label: string; dotClass: string }> = {
   Approved: { label: "Approved", dotClass: "bg-emerald-400" },
@@ -95,6 +103,8 @@ function CampaignsContent() {
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [departmentFilters, setDepartmentFilters] = React.useState<Set<string>>(new Set());
+  const [dateRangeFilter, setDateRangeFilter] = React.useState<DateRange | undefined>();
   const [isLogCampaignOpen, setLogCampaignOpen] = React.useState(false);
   const [userName, setUserName] = React.useState<string>("User");
   const [role, setRole] = React.useState<"manager" | "executive">("manager");
@@ -163,7 +173,16 @@ function CampaignsContent() {
     });
 
     const unsubInfluencers = onSnapshot(collection(db, "influencers"), (snapshot) => {
-      const fetchedInfluencers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Influencer));
+      const fetchedInfluencers = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const { createdById, createdByName, ...rest } = data;
+        return {
+          id: doc.id,
+          ...rest,
+          createdById: typeof createdById === "string" ? createdById : "",
+          createdByName: typeof createdByName === "string" ? createdByName : undefined,
+        } as Influencer;
+      });
       setInfluencers(fetchedInfluencers);
     },
     (error) => {
@@ -182,10 +201,40 @@ function CampaignsContent() {
 
 
   const filteredCampaigns = React.useMemo(() => {
-    return campaigns.filter(campaign =>
-      campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [campaigns, searchQuery]);
+    const query = searchQuery.trim().toLowerCase();
+    const hasDateFilter = Boolean(dateRangeFilter?.from || dateRangeFilter?.to);
+
+    return campaigns.filter((campaign) => {
+      if (query && !campaign.name.toLowerCase().includes(query)) {
+        return false;
+      }
+
+      if (departmentFilters.size > 0 && !departmentFilters.has(campaign.department)) {
+        return false;
+      }
+
+      if (hasDateFilter) {
+        const campaignDate = parseISO(campaign.date);
+        if (!isValid(campaignDate)) {
+          return false;
+        }
+        if (dateRangeFilter?.from) {
+          const from = startOfDay(dateRangeFilter.from);
+          if (campaignDate < from) {
+            return false;
+          }
+        }
+        if (dateRangeFilter?.to) {
+          const to = endOfDay(dateRangeFilter.to);
+          if (campaignDate > to) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [campaigns, searchQuery, departmentFilters, dateRangeFilter]);
 
   const completionCampaign = React.useMemo(() => {
     if (!completionCampaignId) return null;
@@ -209,6 +258,36 @@ function CampaignsContent() {
     auth?.signOut();
     router.push('/');
   }
+
+  const departmentOptions = React.useMemo(() => {
+    const defaults = [...DEPARTMENT_OPTIONS];
+    const extras = campaigns
+      .map((campaign) => campaign.department)
+      .filter((department) => department && !defaults.includes(department));
+    const uniqueExtras = Array.from(new Set(extras));
+    return [...defaults, ...uniqueExtras];
+  }, [campaigns]);
+
+  const activeFilterCount = React.useMemo(() => {
+    const dateActive = dateRangeFilter?.from || dateRangeFilter?.to ? 1 : 0;
+    return departmentFilters.size + dateActive;
+  }, [departmentFilters, dateRangeFilter]);
+
+  const dateRangeSummary = React.useMemo(() => {
+    if (!dateRangeFilter?.from && !dateRangeFilter?.to) {
+      return "";
+    }
+    if (dateRangeFilter.from && dateRangeFilter.to) {
+      return `${format(dateRangeFilter.from, "dd MMM yyyy")} – ${format(dateRangeFilter.to, "dd MMM yyyy")}`;
+    }
+    if (dateRangeFilter.from) {
+      return `From ${format(dateRangeFilter.from, "dd MMM yyyy")}`;
+    }
+    if (dateRangeFilter.to) {
+      return `Until ${format(dateRangeFilter.to, "dd MMM yyyy")}`;
+    }
+    return "";
+  }, [dateRangeFilter]);
 
   const handleStatusChange = (campaignId: string, status: ApprovalStatus) => {
     if (!db || !isManager) return;
@@ -327,12 +406,131 @@ function CampaignsContent() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-full md:w-auto justify-start gap-2">
+                <Filter className="h-4 w-4" />
+                Filters
+                {activeFilterCount > 0 ? (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    {activeFilterCount}
+                  </span>
+                ) : null}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80 space-y-4">
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Department</p>
+                  {departmentFilters.size ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDepartmentFilters(() => new Set())}
+                    >
+                      Clear
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="mt-2 flex max-h-48 flex-col gap-2 overflow-y-auto pr-1">
+                  {departmentOptions.map((department) => {
+                    const checked = departmentFilters.has(department);
+                    return (
+                      <label key={department} className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(state) => {
+                            setDepartmentFilters((prev) => {
+                              const next = new Set(prev);
+                              if (state === true) {
+                                next.add(department);
+                              } else {
+                                next.delete(department);
+                              }
+                              return next;
+                            });
+                          }}
+                        />
+                        <span>{department}</span>
+                      </label>
+                    );
+                  })}
+                  {!departmentOptions.length ? (
+                    <p className="text-sm text-muted-foreground">No departments found.</p>
+                  ) : null}
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Date Range</p>
+                  {dateRangeFilter?.from || dateRangeFilter?.to ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDateRangeFilter(undefined)}
+                    >
+                      Clear
+                    </Button>
+                  ) : null}
+                </div>
+                <div className="mt-2">
+                  <Calendar
+                    mode="range"
+                    numberOfMonths={1}
+                    selected={dateRangeFilter}
+                    onSelect={setDateRangeFilter}
+                    initialFocus
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
                     {canManageCampaigns && (
             <Button onClick={() => setLogCampaignOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Create Campaign
             </Button>
           )}
         </div>
+
+        {(departmentFilters.size > 0 || dateRangeSummary) && (
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            {Array.from(departmentFilters).map((department) => (
+              <Badge key={department} variant="secondary" className="flex items-center gap-1">
+                {department}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDepartmentFilters((prev) => {
+                      const next = new Set(prev);
+                      next.delete(department);
+                      return next;
+                    })
+                  }
+                  className="ml-1 text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={`Remove ${department}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            {dateRangeSummary ? (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                {dateRangeSummary}
+                <button
+                  type="button"
+                  onClick={() => setDateRangeFilter(undefined)}
+                  className="ml-1 text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Clear date filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ) : null}
+          </div>
+        )}
       </div>
             
             <Card>

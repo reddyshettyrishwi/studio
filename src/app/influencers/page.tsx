@@ -20,9 +20,11 @@ import {
   Home,
   UserRound,
   Trash2,
+  PenLine,
 } from "lucide-react";
 import { Influencer, Platform } from "@/lib/types";
-import { addInfluencer as addInfluencerToDb, deleteInfluencer } from "@/lib/data";
+import { CATEGORY_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/options";
+import { addInfluencer as addInfluencerToDb, deleteInfluencer, updateInfluencer as updateInfluencerInDb } from "@/lib/data";
 import {
   SidebarProvider,
   Sidebar,
@@ -54,7 +56,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import AddInfluencerDialog from "@/components/add-influencer-dialog";
@@ -66,6 +68,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -83,12 +86,15 @@ import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import ViewingAsIndicator from "@/components/viewing-as-indicator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 const platformIcons: Record<Platform, React.ReactNode> = {
   YouTube: <Youtube className="h-4 w-4 text-red-500" />,
   Instagram: <Instagram className="h-4 w-4 text-pink-500" />,
 };
+
+const formatHandle = (handle: string) => handle.replace(/^@+/u, "");
 
 function InfluencersContent() {
   const searchParams = useSearchParams()
@@ -101,10 +107,13 @@ function InfluencersContent() {
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [viewMode, setViewMode] = React.useState<"grid" | "table">("grid");
+  const [activeTab, setActiveTab] = React.useState<"all" | "mine">("all");
   const [userName, setUserName] = React.useState<string>("User");
   const [role, setRole] = React.useState<"manager" | "executive">("manager");
   const isExecutive = role === "executive";
   const canManageInfluencers = role === "executive" || role === "manager";
+  const [isEditDialogOpen, setEditDialogOpen] = React.useState(false);
+  const [influencerBeingEdited, setInfluencerBeingEdited] = React.useState<Influencer | null>(null);
 
   const queryString = React.useMemo(() => {
     const params = new URLSearchParams({ name: userName, role });
@@ -131,6 +140,8 @@ function InfluencersContent() {
     category: new Set(),
     language: new Set(),
   });
+  const [categoryFilterSearch, setCategoryFilterSearch] = React.useState("");
+  const [languageFilterSearch, setLanguageFilterSearch] = React.useState("");
   
   const [isAddInfluencerOpen, setAddInfluencerOpen] = React.useState(false);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
@@ -151,9 +162,27 @@ function InfluencersContent() {
           ? data.lastPromotionDate.toDate().toISOString()
           : data.lastPromotionDate;
 
+        // Handle legacy records that stored a single `language` string.
+        const normalizedLanguages = Array.isArray(data.languages)
+          ? data.languages
+          : typeof data.language === "string"
+            ? [data.language]
+            : [];
+
+        const {
+          language: _deprecatedLanguage,
+          languages: _languages,
+          createdById,
+          createdByName,
+          ...rest
+        } = data;
+
         return {
           id: doc.id,
-          ...data,
+          ...rest,
+          createdById: typeof createdById === "string" ? createdById : "",
+          createdByName: typeof createdByName === "string" ? createdByName : undefined,
+          languages: normalizedLanguages,
           lastPromotionDate,
         } as Influencer;
       });
@@ -171,8 +200,40 @@ function InfluencersContent() {
   }, [db, authUser]);
 
 
-  const categories = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.category))], [initialInfluencers]);
-  const languages = React.useMemo(() => [...new Set(initialInfluencers.map(i => i.language))], [initialInfluencers]);
+  const categories = React.useMemo(() => {
+    const defaults = [...CATEGORY_OPTIONS];
+    const extras = initialInfluencers
+      .map((influencer) => influencer.category)
+      .filter(
+        (category): category is string =>
+          Boolean(category) && !defaults.includes(category)
+      );
+    const uniqueExtras = Array.from(new Set(extras));
+    return [...defaults, ...uniqueExtras];
+  }, [initialInfluencers]);
+
+  const languages = React.useMemo(() => {
+    const defaults = [...LANGUAGE_OPTIONS];
+    const extras = initialInfluencers
+      .flatMap((influencer) => influencer.languages ?? [])
+      .filter((language) => !defaults.includes(language));
+    const uniqueExtras = Array.from(new Set(extras));
+    return [...defaults, ...uniqueExtras];
+  }, [initialInfluencers]);
+
+  const filteredCategoryOptions = React.useMemo(() => {
+    const query = categoryFilterSearch.trim().toLowerCase();
+    return categories.filter((category) =>
+      query ? category.toLowerCase().includes(query) : true
+    );
+  }, [categories, categoryFilterSearch]);
+
+  const filteredLanguageOptions = React.useMemo(() => {
+    const query = languageFilterSearch.trim().toLowerCase();
+    return languages.filter((language) =>
+      query ? language.toLowerCase().includes(query) : true
+    );
+  }, [languages, languageFilterSearch]);
 
   const handleFilterChange = (type: keyof typeof filters, value: string) => {
     setFilters(prev => {
@@ -186,19 +247,32 @@ function InfluencersContent() {
     });
   };
 
+  const userId = authUser?.uid ?? "";
+  const userDisplayName = authUser?.displayName ?? authUser?.email ?? undefined;
+
   const filteredInfluencers = React.useMemo(() => {
     return influencers.filter(influencer => {
+      if (activeTab === "mine" && influencer.createdById !== userId) {
+        return false;
+      }
+
+      const normalizedQuery = searchQuery.trim().toLowerCase();
+      const handleQuery = normalizedQuery.replace(/^@+/u, "");
       const searchMatch =
-        searchQuery === "" ||
-        influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        influencer.platforms.some(p => p.handle.toLowerCase().includes(searchQuery.toLowerCase()));
+        normalizedQuery === "" ||
+        influencer.name.toLowerCase().includes(normalizedQuery) ||
+        influencer.platforms.some((p) =>
+          formatHandle(p.handle).toLowerCase().includes(handleQuery)
+        );
 
       const categoryMatch = filters.category.size === 0 || filters.category.has(influencer.category);
-      const languageMatch = filters.language.size === 0 || filters.language.has(influencer.language);
+      const languageMatch =
+        filters.language.size === 0 ||
+        (influencer.languages ?? []).some((lang) => filters.language.has(lang));
 
       return searchMatch && categoryMatch && languageMatch;
     });
-  }, [influencers, searchQuery, filters]);
+  }, [influencers, searchQuery, filters, activeTab, userId]);
 
   const addInfluencer = async (newInfluencer: Omit<Influencer, "id" | "avatar">) => {
     if (!db || !canManageInfluencers) return;
@@ -213,6 +287,25 @@ function InfluencersContent() {
       toast({
         title: "Duplicate Found",
         description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const updateInfluencer = async (influencerId: string, updatedInfluencer: Omit<Influencer, "id" | "avatar">) => {
+    if (!db || !canManageInfluencers) return;
+    try {
+      await updateInfluencerInDb(db, influencerId, updatedInfluencer);
+      toast({
+        title: "Influencer Updated",
+        description: `${updatedInfluencer.name} has been updated successfully.`,
+      });
+      setEditDialogOpen(false);
+      setInfluencerBeingEdited(null);
+    } catch (error: any) {
+      toast({
+        title: "Update Failed",
+        description: error.message ?? "We couldn't update this influencer. Please try again.",
         variant: "destructive",
       });
     }
@@ -341,7 +434,14 @@ function InfluencersContent() {
             />
           </div>
                     
-          <DropdownMenu>
+          <DropdownMenu
+            onOpenChange={(open) => {
+              if (!open) {
+                setCategoryFilterSearch("");
+                setLanguageFilterSearch("");
+              }
+            }}
+          >
             <DropdownMenuTrigger asChild>
             <Button variant="outline" className="w-full md:w-auto justify-start">
               <Filter className="mr-2 h-4 w-4"/>
@@ -351,16 +451,61 @@ function InfluencersContent() {
             <DropdownMenuContent className="w-56" align="end">
             <DropdownMenuLabel>Category</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {categories.map(cat => (
-              <DropdownMenuCheckboxItem key={cat} checked={filters.category.has(cat)} onCheckedChange={() => handleFilterChange('category', cat)}>{cat}</DropdownMenuCheckboxItem>
-            ))}
+            <div className="px-2 pb-2">
+              <Input
+                value={categoryFilterSearch}
+                onChange={(event) => setCategoryFilterSearch(event.target.value)}
+                placeholder="Search categories..."
+              />
+            </div>
+            {filteredCategoryOptions.length ? (
+              filteredCategoryOptions.map(cat => (
+                <DropdownMenuCheckboxItem
+                  key={cat}
+                  checked={filters.category.has(cat)}
+                  onCheckedChange={() => handleFilterChange('category', cat)}
+                >
+                  {cat}
+                </DropdownMenuCheckboxItem>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
+            )}
              <DropdownMenuLabel>Language</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {languages.map(lang => (
-              <DropdownMenuCheckboxItem key={lang} checked={filters.language.has(lang)} onCheckedChange={() => handleFilterChange('language', lang)}>{lang}</DropdownMenuCheckboxItem>
-            ))}
+            <div className="px-2 pb-2">
+              <Input
+                value={languageFilterSearch}
+                onChange={(event) => setLanguageFilterSearch(event.target.value)}
+                placeholder="Search languages..."
+              />
+            </div>
+            {filteredLanguageOptions.length ? (
+              filteredLanguageOptions.map(lang => (
+                <DropdownMenuCheckboxItem
+                  key={lang}
+                  checked={filters.language.has(lang)}
+                  onCheckedChange={() => handleFilterChange('language', lang)}
+                >
+                  {lang}
+                </DropdownMenuCheckboxItem>
+              ))
+            ) : (
+              <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
+            )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as "all" | "mine")}
+            className="w-full md:w-auto"
+          >
+            <TabsList className="grid grid-cols-2 w-full md:w-auto">
+              <TabsTrigger value="all">All Influencers</TabsTrigger>
+              <TabsTrigger value="mine">My Influencers</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           <div className="flex items-center gap-1 bg-secondary/50 backdrop-blur-sm p-1 rounded-md">
             <Button variant={viewMode === 'grid' ? "secondary" : "ghost"} size="icon" onClick={() => setViewMode('grid')}>
@@ -399,7 +544,7 @@ function InfluencersContent() {
                                 </Avatar>
                                 <div>
                                 <CardTitle className="font-headline text-lg">{influencer.name}</CardTitle>
-                                <p className="text-sm text-muted-foreground">{influencer.platforms.map(p => `@${p.handle}`).join(', ')}</p>
+                                <p className="text-sm text-muted-foreground">{influencer.platforms.map(p => `@${formatHandle(p.handle)}`).join(', ')}</p>
                                 </div>
                             </div>
                             </CardHeader>
@@ -418,7 +563,7 @@ function InfluencersContent() {
                                     {influencer.platforms.map(p => (
                                         <div key={p.platform} className="flex items-center gap-1 text-sm text-muted-foreground">
                                         {platformIcons[p.platform]}
-                                        <span>@{p.handle}</span>
+                                        <span>@{formatHandle(p.handle)}</span>
                                         </div>
                                     ))}
                                     </div>
@@ -428,7 +573,13 @@ function InfluencersContent() {
                             <div className="pt-4 space-y-4">
                                 <div className="flex items-center gap-2 text-sm flex-wrap">
                                     <Badge variant="secondary">{influencer.category}</Badge>
-                                    <Badge variant="outline">{influencer.language}</Badge>
+                                    {(influencer.languages ?? []).length ? (
+                                      (influencer.languages ?? []).map((lang) => (
+                                        <Badge key={lang} variant="outline">{lang}</Badge>
+                                      ))
+                                    ) : (
+                                      <Badge variant="outline">N/A</Badge>
+                                    )}
                                 </div>
                                 <div className="space-y-2 text-sm">
                                 {influencer.platforms.map(p => (
@@ -447,9 +598,28 @@ function InfluencersContent() {
                                 <p><strong className="font-bold">Mobile:</strong> {influencer.mobile}</p>
                                 </div>
                             </div>
-                             <DialogFooter>
+                             <DialogFooter className="justify-between">
+                                {influencer.createdById === userId ? (
+                                  <DialogClose asChild>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setInfluencerBeingEdited(influencer);
+                                        setEditDialogOpen(true);
+                                      }}
+                                    >
+                                      <PenLine className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </Button>
+                                  </DialogClose>
+                                ) : <span />}
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon" className="rounded-full">
+                                    <Button
+                                      variant="destructive"
+                                      size="icon"
+                                      className="rounded-full"
+                                      onClick={() => setSelectedInfluencer(influencer)}
+                                    >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </AlertDialogTrigger>
@@ -469,6 +639,7 @@ function InfluencersContent() {
                                     <TableHead>Last Price Paid</TableHead>
                                     <TableHead>Contact</TableHead>
                                     <TableHead>Last Promo</TableHead>
+                                    <TableHead>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -490,13 +661,24 @@ function InfluencersContent() {
                                                         {platformIcons[p.platform]}
                                                         <div>
                                                             <div className="font-medium">{p.channelName}</div>
-                                                            <span className="text-xs text-muted-foreground">@{p.handle}</span>
+                                                            <span className="text-xs text-muted-foreground">@{formatHandle(p.handle)}</span>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         </TableCell>
-                                        <TableCell><Badge variant="secondary">{influencer.category}</Badge></TableCell>
+                                        <TableCell>
+                                          <div className="flex flex-wrap gap-2">
+                                            <Badge variant="secondary">{influencer.category}</Badge>
+                                            {(influencer.languages ?? []).length ? (
+                                              (influencer.languages ?? []).map((lang) => (
+                                                <Badge key={lang} variant="outline">{lang}</Badge>
+                                              ))
+                                            ) : (
+                                              <Badge variant="outline">N/A</Badge>
+                                            )}
+                                          </div>
+                                        </TableCell>
                                         <TableCell>{influencer.lastPricePaid ? `₹${influencer.lastPricePaid.toLocaleString('en-IN')}` : 'N/A'}</TableCell>
                                         <TableCell>{influencer.email}</TableCell>
                                         <TableCell>
@@ -504,6 +686,33 @@ function InfluencersContent() {
                                             {format(new Date(influencer.lastPromotionDate), 'dd MMM yyyy')}
                                             {isDataOutdated(influencer.lastPromotionDate) && <Badge variant="destructive" className="ml-2">Outdated</Badge>}
                                         </div>
+                                        </TableCell>
+                                        <TableCell>
+                                          <div className="flex items-center gap-2">
+                                            {influencer.createdById === userId && (
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                  setInfluencerBeingEdited(influencer);
+                                                  setEditDialogOpen(true);
+                                                }}
+                                              >
+                                                <PenLine className="mr-1 h-4 w-4" /> Edit
+                                              </Button>
+                                            )}
+                                            {canManageInfluencers && (
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  onClick={() => setSelectedInfluencer(influencer)}
+                                                >
+                                                  <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                            )}
+                                          </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -538,7 +747,23 @@ function InfluencersContent() {
               <AddInfluencerDialog
                 isOpen={isAddInfluencerOpen}
                 onClose={() => setAddInfluencerOpen(false)}
+                currentUser={{ id: userId, name: userDisplayName }}
                 onAddInfluencer={addInfluencer}
+              />
+            )}
+
+            {canManageInfluencers && influencerBeingEdited && (
+              <AddInfluencerDialog
+                isOpen={isEditDialogOpen}
+                onClose={() => {
+                  setEditDialogOpen(false);
+                  setInfluencerBeingEdited(null);
+                }}
+                currentUser={{ id: userId, name: userDisplayName }}
+                onAddInfluencer={addInfluencer}
+                mode="edit"
+                initialInfluencer={influencerBeingEdited}
+                onUpdateInfluencer={updateInfluencer}
               />
             )}
         </main>

@@ -119,7 +119,16 @@ function DashboardContent() {
     });
 
     const unsubInfluencers = onSnapshot(collection(db, "influencers"), (snapshot) => {
-      const fetchedInfluencers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Influencer));
+      const fetchedInfluencers = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const { createdById, createdByName, ...rest } = data;
+        return {
+          id: doc.id,
+          ...rest,
+          createdById: typeof createdById === "string" ? createdById : "",
+          createdByName: typeof createdByName === "string" ? createdByName : undefined,
+        } as Influencer;
+      });
       setInfluencers(fetchedInfluencers);
     },
     (error) => {

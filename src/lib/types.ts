@@ -16,7 +16,7 @@ export type Influencer = {
   name:string;
   platforms: PlatformDetails[];
   category: string;
-  language: string;
+  languages: string[];
   email: string;
   mobile: string;
   pan: string; // Faking PAN as a string
@@ -28,6 +28,8 @@ export type Influencer = {
   lastPromotionDate: string;
   lastPricePaid?: number;
   avatar: string; // URL to image
+  createdById: string;
+  createdByName?: string;
 };
 
 export type CampaignCompletion = {

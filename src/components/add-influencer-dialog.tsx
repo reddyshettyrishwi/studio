@@ -1,11 +1,9 @@
-
 "use client";
 
 import * as React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Form,
@@ -31,13 +30,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ChevronDown } from "lucide-react";
 import type { Influencer, PlatformDetails } from "@/lib/types";
+import { CATEGORY_OPTIONS, COUNTRY_CODE_OPTIONS, DEPARTMENT_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/options";
 import { Separator } from "./ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar } from "./ui/calendar";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const platformSchema = z.object({
   platform: z.enum(["YouTube", "Instagram"]),
@@ -52,17 +58,23 @@ const optionalPlatformSchema = z.object({
     handle: z.string(),
 }).partial().optional();
 
+const LanguageEnum = z.enum(LANGUAGE_OPTIONS);
 
 const influencerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   platform1: platformSchema,
   platform2: optionalPlatformSchema,
-  category: z.string().min(1, "Category is required."),
-  language: z.string().min(1, "Language is required."),
+  category: z.enum(CATEGORY_OPTIONS, {
+    required_error: "Select a category.",
+  }),
+  languages: z.array(LanguageEnum).min(1, "Select at least one language."),
   email: z.string().email("Please enter a valid email address."),
-  mobile: z.string().min(10, "Please enter a valid mobile number."),
+  countryCode: z.string().regex(/^\+\d{1,4}$/u, "Select a country code."),
+  mobile: z.string().regex(/^\d{7,15}$/u, "Enter digits only (7-15)."),
   pan: z.string().min(1, "PAN/Legal ID is required."),
-  lastPromotionBy: z.string().min(1, "Required field."),
+  lastPromotionBy: z.enum(DEPARTMENT_OPTIONS, {
+    required_error: "Select the department that led the last promotion.",
+  }),
   lastPromotionDate: z.date({
     required_error: "A date of promotion is required.",
   }),
@@ -71,79 +83,235 @@ const influencerSchema = z.object({
 
 type AddInfluencerFormValues = z.infer<typeof influencerSchema>;
 
+const sanitizeHandle = (rawHandle: string) => rawHandle.replace(/^@+/u, "").trim();
+
+const splitPhoneNumber = (phone: string) => {
+  const normalized = phone.trim();
+  const directMatch = normalized.match(/^(\+\d{1,4})(\d{5,15})$/u);
+  if (directMatch) {
+    return {
+      countryCode: directMatch[1],
+      mobile: directMatch[2],
+    };
+  }
+
+  for (const option of COUNTRY_CODE_OPTIONS) {
+    if (normalized.startsWith(option.value)) {
+      const digits = normalized.slice(option.value.length).replace(/\D+/g, "");
+      return {
+        countryCode: option.value,
+        mobile: digits,
+      };
+    }
+  }
+
+  return {
+    countryCode: "+91",
+    mobile: normalized.replace(/\D+/g, ""),
+  };
+};
+
+const createEmptyFormValues = (): Partial<AddInfluencerFormValues> => ({
+  name: "",
+  email: "",
+  mobile: "",
+  countryCode: "+91",
+  pan: "",
+  category: CATEGORY_OPTIONS[0],
+  languages: [],
+  lastPromotionBy: DEPARTMENT_OPTIONS[0],
+  platform1: {
+    platform: "Instagram",
+    channelName: "",
+    handle: "",
+  },
+  platform2: {
+    platform: "YouTube",
+    channelName: "",
+    handle: "",
+  },
+  lastPricePaid: undefined,
+});
+
+const convertInfluencerToFormValues = (influencer: Influencer): Partial<AddInfluencerFormValues> => {
+  const primaryPlatform = influencer.platforms[0];
+  const secondaryPlatform = influencer.platforms[1];
+  const { countryCode, mobile } = splitPhoneNumber(influencer.mobile ?? "");
+  const normalizedCategory = CATEGORY_OPTIONS.includes(
+    influencer.category as (typeof CATEGORY_OPTIONS)[number]
+  )
+    ? (influencer.category as (typeof CATEGORY_OPTIONS)[number])
+    : "Other";
+
+  const parsedDate = influencer.lastPromotionDate
+    ? new Date(influencer.lastPromotionDate)
+    : undefined;
+  const validDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : undefined;
+
+  return {
+    ...createEmptyFormValues(),
+    name: influencer.name,
+    email: influencer.email,
+    mobile,
+    countryCode,
+    pan: influencer.pan,
+    category: normalizedCategory,
+    languages: influencer.languages ?? [],
+    lastPromotionBy: (DEPARTMENT_OPTIONS.includes(influencer.lastPromotionBy as (typeof DEPARTMENT_OPTIONS)[number])
+      ? influencer.lastPromotionBy
+      : DEPARTMENT_OPTIONS[0]) as (typeof DEPARTMENT_OPTIONS)[number],
+    lastPromotionDate: validDate,
+    lastPricePaid: influencer.lastPricePaid ?? undefined,
+    platform1: {
+      platform: primaryPlatform?.platform ?? "Instagram",
+      channelName: primaryPlatform?.channelName ?? "",
+      handle: sanitizeHandle(primaryPlatform?.handle ?? ""),
+    },
+    platform2: secondaryPlatform
+      ? {
+          platform: secondaryPlatform.platform,
+          channelName: secondaryPlatform.channelName,
+          handle: sanitizeHandle(secondaryPlatform.handle ?? ""),
+        }
+      : {
+          platform: "YouTube",
+          channelName: "",
+          handle: "",
+        },
+  };
+};
+
 interface AddInfluencerDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  currentUser: { id: string; name?: string | null };
   onAddInfluencer: (influencer: Omit<Influencer, "id" | "avatar">) => Promise<void>;
+  mode?: "create" | "edit";
+  initialInfluencer?: Influencer | null;
+  onUpdateInfluencer?: (influencerId: string, influencer: Omit<Influencer, "id" | "avatar">) => Promise<void>;
 }
 
 export default function AddInfluencerDialog({
   isOpen,
   onClose,
+  currentUser,
   onAddInfluencer,
+  mode = "create",
+  initialInfluencer = null,
+  onUpdateInfluencer,
 }: AddInfluencerDialogProps) {
-  const { toast } = useToast();
+  const [countrySearch, setCountrySearch] = React.useState("");
+  const [languageSearch, setLanguageSearch] = React.useState("");
+  const [categorySearch, setCategorySearch] = React.useState("");
+  const isEditMode = mode === "edit";
+
+  const defaultValues = React.useMemo(() => {
+    if (isEditMode && initialInfluencer) {
+      return convertInfluencerToFormValues(initialInfluencer);
+    }
+    return createEmptyFormValues();
+  }, [isEditMode, initialInfluencer]);
   
   const form = useForm<AddInfluencerFormValues>({
     resolver: zodResolver(influencerSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      mobile: "",
-      pan: "",
-      category: "",
-      language: "",
-      lastPromotionBy: "",
-      platform1: {
-        platform: "Instagram",
-        channelName: "",
-        handle: "",
-      },
-      platform2: {
-        platform: "YouTube",
-        channelName: "",
-        handle: "",
-      },
-    },
+    defaultValues,
   });
   
   const { control } = form;
+  const selectedCountryCode = form.watch("countryCode") ?? "+91";
+  const selectedCountry = React.useMemo(
+    () => COUNTRY_CODE_OPTIONS.find((option) => option.value === selectedCountryCode),
+    [selectedCountryCode]
+  );
+
+  React.useEffect(() => {
+    if (isOpen) {
+      form.reset(defaultValues);
+    }
+  }, [isOpen, defaultValues, form]);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setCountrySearch("");
+      setLanguageSearch("");
+      setCategorySearch("");
+    }
+  }, [isOpen]);
 
   async function onSubmit(data: AddInfluencerFormValues) {
-    const platforms: PlatformDetails[] = [data.platform1 as PlatformDetails];
-    if (data.platform2 && data.platform2.handle) {
-      platforms.push(data.platform2 as PlatformDetails);
+    const primaryHandle = sanitizeHandle(data.platform1.handle);
+    const platforms: PlatformDetails[] = [
+      {
+        platform: data.platform1.platform,
+        channelName: data.platform1.channelName.trim(),
+        handle: primaryHandle,
+      },
+    ];
+
+    if (data.platform2) {
+      const secondaryHandle = sanitizeHandle(data.platform2.handle ?? "");
+      if (secondaryHandle) {
+        platforms.push({
+          platform: data.platform2.platform ?? "YouTube",
+          channelName: (data.platform2.channelName ?? "").trim(),
+          handle: secondaryHandle,
+        } as PlatformDetails);
+      }
     }
 
-    const influencerData = {
-        ...data,
-        platforms,
-        lastPromotionDate: format(data.lastPromotionDate, 'yyyy-MM-dd'),
+    const sanitizedMobile = data.mobile.replace(/\D+/g, "");
+    const creatorName = (isEditMode ? initialInfluencer?.createdByName : currentUser.name) ?? undefined;
+    const creatorId = isEditMode ? initialInfluencer?.createdById ?? currentUser.id : currentUser.id;
+
+    const influencerData: Omit<Influencer, "id" | "avatar"> = {
+      name: data.name.trim(),
+      email: data.email.trim(),
+      mobile: `${data.countryCode}${sanitizedMobile}`,
+      pan: data.pan.trim(),
+      category: data.category,
+      languages: data.languages,
+      lastPromotionBy: data.lastPromotionBy,
+      lastPromotionDate: format(data.lastPromotionDate, "yyyy-MM-dd"),
+      lastPricePaid: data.lastPricePaid ?? undefined,
+      platforms,
+      createdById: creatorId,
+      createdByName: creatorName,
     };
 
-    // Remove platform1 and platform2 from the final object
-    delete (influencerData as any).platform1;
-    delete (influencerData as any).platform2;
+    if (isEditMode) {
+      if (!initialInfluencer || !onUpdateInfluencer) {
+        console.error("Edit mode requires initial influencer data and onUpdateInfluencer handler.");
+        return;
+      }
+      await onUpdateInfluencer(initialInfluencer.id, influencerData);
+    } else {
+      await onAddInfluencer(influencerData);
+    }
 
-
-    await onAddInfluencer(influencerData as Omit<Influencer, "id" | "avatar">);
-    form.reset();
+    form.reset(defaultValues);
     onClose();
   }
 
+  const dialogTitle = isEditMode ? "Edit Influencer" : "Add New Influencer";
+  const dialogDescription = isEditMode
+    ? "Update the influencer’s information and save your changes."
+    : "Enter the details for the new influencer. This will add them to the central repository.";
+  const submitLabel = isEditMode ? "Save Changes" : "Add Influencer";
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
         if (!open) {
-            form.reset();
-            onClose();
+          form.reset(defaultValues);
+          onClose();
         }
-    }}>
+      }}
+    >
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-headline">Add New Influencer</DialogTitle>
-          <DialogDescription>
-            Enter the details for the new influencer. This will add them to the central repository.
-          </DialogDescription>
+          <DialogTitle className="font-headline">{dialogTitle}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -164,13 +332,93 @@ export default function AddInfluencerDialog({
                   </FormItem>
                 )}
               />
-              <FormField name="mobile" control={control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mobile Number</FormLabel>
-                    <FormControl><Input placeholder="+91-9876543210" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <FormField
+                name="mobile"
+                control={control}
+                render={({ field }) => {
+                  const countryCodeError = form.formState.errors.countryCode?.message;
+                  return (
+                    <FormItem>
+                      <FormLabel>Mobile Number</FormLabel>
+                      <div className="flex gap-2">
+                        <Select
+                          value={selectedCountryCode}
+                          onValueChange={(value) =>
+                            form.setValue("countryCode", value, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            })
+                          }
+                          onOpenChange={(open) => {
+                            if (!open) {
+                              setCountrySearch("");
+                            }
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-40 justify-between">
+                              <span className="truncate">
+                                {selectedCountry?.label ?? "Select country"}
+                              </span>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <div className="p-2">
+                              <Input
+                                value={countrySearch}
+                                onChange={(event) => setCountrySearch(event.target.value)}
+                                placeholder="Search countries..."
+                              />
+                            </div>
+                            {(() => {
+                              const query = countrySearch.trim().toLowerCase();
+                              const filteredOptions = COUNTRY_CODE_OPTIONS.filter((option) =>
+                                query
+                                  ? option.label.toLowerCase().includes(query) ||
+                                    option.value.replace("+", "").includes(query.replace("+", ""))
+                                  : true
+                              );
+                              if (!filteredOptions.length) {
+                                return (
+                                  <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
+                                );
+                              }
+                              return filteredOptions.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                  aria-label={option.label}
+                                  title={option.label}
+                                >
+                                  <div className="flex flex-col text-left">
+                                    <span className="font-medium">{option.label}</span>
+                                    <span className="text-xs text-muted-foreground">{option.value}</span>
+                                  </div>
+                                </SelectItem>
+                              ));
+                            })()}
+                          </SelectContent>
+                        </Select>
+                        <FormControl>
+                          <Input
+                            placeholder="9876543210"
+                            inputMode="tel"
+                            maxLength={15}
+                            {...field}
+                            onChange={(event) => {
+                              const digitsOnly = event.target.value.replace(/\D+/g, "");
+                              field.onChange(digitsOnly);
+                            }}
+                          />
+                        </FormControl>
+                      </div>
+                      {countryCodeError ? (
+                        <p className="text-sm text-destructive">{countryCodeError}</p>
+                      ) : null}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               <FormField name="pan" control={control} render={({ field }) => (
                   <FormItem>
@@ -217,16 +465,22 @@ export default function AddInfluencerDialog({
                         )}
                     />
                     <FormField
-                        control={control}
-                        name="platform1.handle"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Username</FormLabel>
-                            <FormControl><Input placeholder="@janedoe" {...field} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+                      control={control}
+                      name="platform1.handle"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="janedoe"
+                              {...field}
+                              onChange={(event) => field.onChange(sanitizeHandle(event.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
                 </div>
             </div>
 
@@ -270,7 +524,14 @@ export default function AddInfluencerDialog({
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Username</FormLabel>
-                            <FormControl><Input placeholder="@janedoe" {...field} value={field.value || ''} /></FormControl>
+                            <FormControl>
+                              <Input
+                                placeholder="janedoe"
+                                {...field}
+                                value={field.value || ""}
+                                onChange={(event) => field.onChange(sanitizeHandle(event.target.value))}
+                              />
+                            </FormControl>
                             <FormMessage />
                         </FormItem>
                         )}
@@ -280,29 +541,153 @@ export default function AddInfluencerDialog({
 
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField name="category" control={control} render={({ field }) => (
+              <FormField
+                name="category"
+                control={control}
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category / Niche</FormLabel>
-                    <FormControl><Input placeholder="e.g., Fashion, Tech" {...field} /></FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => field.onChange(value)}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          setCategorySearch("");
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <div className="p-2">
+                          <Input
+                            value={categorySearch}
+                            onChange={(event) => setCategorySearch(event.target.value)}
+                            placeholder="Search categories..."
+                            autoFocus
+                          />
+                        </div>
+                        {(() => {
+                          const query = categorySearch.trim().toLowerCase();
+                          const filteredOptions = CATEGORY_OPTIONS.filter((option) =>
+                            query ? option.toLowerCase().includes(query) : true
+                          );
+                          if (!filteredOptions.length) {
+                            return (
+                              <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
+                            );
+                          }
+                          return filteredOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ));
+                        })()}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField name="language" control={control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Language</FormLabel>
-                    <FormControl><Input placeholder="e.g., English" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <FormField
+                name="languages"
+                control={control}
+                render={({ field }) => {
+                  const value = field.value ?? [];
+                  const filteredLanguages = LANGUAGE_OPTIONS.filter((option) =>
+                    languageSearch.trim()
+                      ? option.toLowerCase().includes(languageSearch.trim().toLowerCase())
+                      : true
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>Languages</FormLabel>
+                      <DropdownMenu onOpenChange={(open) => {
+                        if (!open) setLanguageSearch("");
+                      }}>
+                        <DropdownMenuTrigger asChild>
+                          <Button type="button" variant="outline" className="w-full justify-between">
+                            <span>{value.length ? value.join(", ") : "Select languages"}</span>
+                            <ChevronDown className="h-4 w-4 opacity-70" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56">
+                          <div className="p-2">
+                            <Input
+                              value={languageSearch}
+                              onChange={(event) => setLanguageSearch(event.target.value)}
+                              placeholder="Search languages..."
+                              autoFocus
+                            />
+                          </div>
+                          {filteredLanguages.length ? (
+                            filteredLanguages.map((option) => {
+                              const checked = value.includes(option);
+                              return (
+                                <DropdownMenuCheckboxItem
+                                  key={option}
+                                  checked={checked}
+                                  onCheckedChange={(checkedState) => {
+                                    const next = checkedState === true
+                                      ? [...value, option]
+                                      : value.filter((lang) => lang !== option);
+                                    const deduped = LANGUAGE_OPTIONS.filter((lang) => next.includes(lang));
+                                    field.onChange(deduped);
+                                  }}
+                                  onSelect={(event) => event.preventDefault()}
+                                >
+                                  {option}
+                                </DropdownMenuCheckboxItem>
+                              );
+                            })
+                          ) : (
+                            <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      {value.length ? (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          {value.map((lang) => (
+                            <Badge key={lang} variant="secondary">
+                              {lang}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : null}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <FormField name="lastPromotionBy" control={control} render={({ field }) => (
+              <FormField
+                name="lastPromotionBy"
+                control={control}
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Last Promotion By</FormLabel>
-                    <FormControl><Input placeholder="e.g., Marketing Dept" {...field} /></FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => field.onChange(value)}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DEPARTMENT_OPTIONS.map((department) => (
+                          <SelectItem key={department} value={department}>
+                            {department}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -353,7 +738,7 @@ export default function AddInfluencerDialog({
                 control={control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Price Paid (₹) (Optional)</FormLabel>
+                    <FormLabel>Last Price Paid (₹, Excluding Taxes) (Optional)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -379,7 +764,7 @@ export default function AddInfluencerDialog({
                 Cancel
               </Button>
               <Button type="submit">
-                Add Influencer
+                {submitLabel}
               </Button>
             </DialogFooter>
           </form>
