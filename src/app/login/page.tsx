@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Megaphone, Loader2, Chrome } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { upsertUser } from "@/lib/data";
 import { useAuth, useFirestore, useUser } from "@/firebase";
@@ -37,16 +37,13 @@ export default function LoginPage() {
 
 function LoginPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const db = useFirestore();
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
 
   const [isProcessing, setIsProcessing] = React.useState(false);
-  const roleParam = (searchParams?.get("role") || "manager").toLowerCase();
-  const requestedRole = roleParam === "executive" ? "executive" : "manager";
-  const roleLabel = requestedRole === "executive" ? "Executive" : "Manager";
+  const [pendingRole, setPendingRole] = React.useState<"manager" | "executive" | null>(null);
 
   const handleGoogleSignIn = async () => {
     if (!db || !auth) {
@@ -90,16 +87,6 @@ function LoginPageContent() {
         return;
       }
 
-      if (normalizedRole !== requestedRole) {
-        await signOut(auth);
-        toast({
-          variant: "destructive",
-          title: "Access denied. Role mismatch.",
-          description: `Please sign in through the ${normalizedRole} portal.`,
-        });
-        return;
-      }
-
       if (normalizedRole === "manager" && !normalizedDepartment) {
         await signOut(auth);
         toast({
@@ -114,6 +101,8 @@ function LoginPageContent() {
         name: userProfile.name,
         role: normalizedRole,
       });
+
+      setPendingRole(normalizedRole === "manager" || normalizedRole === "executive" ? normalizedRole : null);
 
       if (normalizedRole === "manager" && normalizedDepartment) {
         params.set("department", normalizedDepartment);
@@ -158,19 +147,10 @@ function LoginPageContent() {
           return;
         }
 
-        if (normalizedRole !== requestedRole) {
-          await signOut(auth);
-          if (isActive) {
-            toast({
-              variant: "destructive",
-              title: "Access denied. Role mismatch.",
-              description: `Please sign in through the ${normalizedRole} portal.`,
-            });
-          }
-          return;
-        }
-
         if (normalizedRole === "manager" && !normalizedDepartment) {
+          if (isActive) {
+            setIsProcessing(false);
+          }
           await signOut(auth);
           if (isActive) {
             toast({
@@ -183,6 +163,7 @@ function LoginPageContent() {
         }
 
         if (isActive) {
+          setPendingRole(normalizedRole === "manager" || normalizedRole === "executive" ? normalizedRole : null);
           const params = new URLSearchParams({
             name: authUser.displayName || "User",
             role: normalizedRole,
@@ -212,7 +193,7 @@ function LoginPageContent() {
     return () => {
       isActive = false;
     };
-  }, [authUser, isUserLoading, db, auth, router, toast, requestedRole]);
+  }, [authUser, isUserLoading, db, auth, router, toast]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -225,21 +206,24 @@ function LoginPageContent() {
             Nxthub
           </h1>
           <p className="text-sm text-muted-foreground">
-            You&apos;re signing in as {roleLabel}
+            We&apos;ll tailor the workspace once we confirm your role.
           </p>
         </div>
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl font-headline">Sign In as {roleLabel}</CardTitle>
+          <CardTitle className="text-2xl font-headline">Sign In to Nxthub</CardTitle>
           <CardDescription>
-            Sign in with your Google account to continue as a {roleLabel.toLowerCase()}.
+            Sign in with your Google account and we&apos;ll route you to your workspace.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <Button variant="outline" onClick={handleGoogleSignIn} disabled={isProcessing}>
             {isProcessing ? (
-              <Loader2 className="animate-spin" />
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {pendingRole ? `Preparing your ${pendingRole} workspace...` : "Preparing your workspace..."}
+              </span>
             ) : (
               <>
                 <Chrome className="mr-2 h-4 w-4" /> Sign in with Google

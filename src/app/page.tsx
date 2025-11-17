@@ -17,7 +17,7 @@ export default function LandingPage() {
           Unify your influencer data, streamline campaigns, and access AI-powered insights—all in one place.
         </p>
 
-    <Link href="/role-selection">
+    <Link href="/login">
             <Button size="lg" className="mt-4">
                 Get Started
                 <ArrowRight className="ml-2 h-5 w-5" />
