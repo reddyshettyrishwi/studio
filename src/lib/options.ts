@@ -4,12 +4,13 @@ export const isLanguageOption = (value: string): value is LanguageOption =>
   LANGUAGE_OPTIONS.includes(value as LanguageOption);
 
 export const DEPARTMENT_OPTIONS = [
-  "Marketing",
-  "Sales",
+  "MARKETING",
+  "SALES",
   "HR",
-  "Content",
-  "Product",
-  "Operations",
+  "CONTENT",
+  "PRODUCT",
+  "OPERATIONS",
+  "GEN AI SOCIAL MEDIA",
 ] as const;
 export type DepartmentOption = (typeof DEPARTMENT_OPTIONS)[number];
 export const isDepartmentOption = (value: string): value is DepartmentOption =>
