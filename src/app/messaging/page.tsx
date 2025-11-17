@@ -12,6 +12,7 @@ import {
   Users,
   UserRound,
 } from "lucide-react";
+import { normalizeDepartment } from "@/lib/options";
 import {
   SidebarProvider,
   Sidebar,
@@ -38,11 +39,15 @@ function MessagingContent() {
   const { user: authUser, isUserLoading } = useUser();
   const [role, setRole] = React.useState<"manager" | "executive">("manager");
   const [userName, setUserName] = React.useState<string>("User");
+  const [department, setDepartment] = React.useState<string | null>(null);
 
   const queryString = React.useMemo(() => {
     const params = new URLSearchParams({ name: userName, role });
+    if (department) {
+      params.set("department", department);
+    }
     return params.toString();
-  }, [role, userName]);
+  }, [role, userName, department]);
 
   const dashboardHref = React.useMemo(() => `/dashboard?${queryString}`, [queryString]);
 
@@ -54,6 +59,12 @@ function MessagingContent() {
 
     const nextName = searchParams.get('name') || 'User';
     setUserName(prev => (prev === nextName ? prev : nextName));
+
+    const rawDepartment = searchParams.get('department');
+    const canonicalDepartment = rawDepartment
+      ? normalizeDepartment(rawDepartment) ?? rawDepartment
+      : null;
+    setDepartment((prev) => (prev === canonicalDepartment ? prev : canonicalDepartment));
   }, [searchParams]);
   
   React.useEffect(() => {

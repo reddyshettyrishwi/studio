@@ -32,7 +32,14 @@ import {
 } from "@/components/ui/select";
 import { CalendarIcon, ChevronDown } from "lucide-react";
 import type { Influencer, PlatformDetails } from "@/lib/types";
-import { CATEGORY_OPTIONS, COUNTRY_CODE_OPTIONS, DEPARTMENT_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/options";
+import {
+  CATEGORY_OPTIONS,
+  COUNTRY_CODE_OPTIONS,
+  DEPARTMENT_OPTIONS,
+  LANGUAGE_OPTIONS,
+  isCategoryOption,
+  isLanguageOption,
+} from "@/lib/options";
 import { Separator } from "./ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
@@ -139,10 +146,8 @@ const convertInfluencerToFormValues = (influencer: Influencer): Partial<AddInflu
   const primaryPlatform = influencer.platforms[0];
   const secondaryPlatform = influencer.platforms[1];
   const { countryCode, mobile } = splitPhoneNumber(influencer.mobile ?? "");
-  const normalizedCategory = CATEGORY_OPTIONS.includes(
-    influencer.category as (typeof CATEGORY_OPTIONS)[number]
-  )
-    ? (influencer.category as (typeof CATEGORY_OPTIONS)[number])
+  const normalizedCategory = isCategoryOption(influencer.category)
+    ? influencer.category
     : "Other";
 
   const parsedDate = influencer.lastPromotionDate
@@ -158,7 +163,7 @@ const convertInfluencerToFormValues = (influencer: Influencer): Partial<AddInflu
     countryCode,
     pan: (influencer.pan ?? "").toUpperCase(),
     category: normalizedCategory,
-    languages: influencer.languages ?? [],
+    languages: (influencer.languages ?? []).filter(isLanguageOption),
     lastPromotionBy: (DEPARTMENT_OPTIONS.includes(influencer.lastPromotionBy as (typeof DEPARTMENT_OPTIONS)[number])
       ? influencer.lastPromotionBy
       : DEPARTMENT_OPTIONS[0]) as (typeof DEPARTMENT_OPTIONS)[number],
@@ -182,6 +187,15 @@ const convertInfluencerToFormValues = (influencer: Influencer): Partial<AddInflu
         },
   };
 };
+
+const RequiredAsterisk: React.FC = () => (
+  <span className="ml-1 inline-flex items-center gap-1">
+    <span className="text-destructive" aria-hidden="true">
+      *
+    </span>
+    <span className="sr-only">(required)</span>
+  </span>
+);
 
 interface AddInfluencerDialogProps {
   isOpen: boolean;
@@ -320,7 +334,10 @@ export default function AddInfluencerDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField name="name" control={control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>
+                      Full Name
+                      <RequiredAsterisk />
+                    </FormLabel>
                     <FormControl><Input placeholder="e.g., Jane Doe" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -328,7 +345,10 @@ export default function AddInfluencerDialog({
               />
               <FormField name="email" control={control} render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Address</FormLabel>
+                    <FormLabel>
+                      Email Address
+                      <RequiredAsterisk />
+                    </FormLabel>
                     <FormControl><Input type="email" placeholder="name@example.com" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -341,7 +361,10 @@ export default function AddInfluencerDialog({
                   const countryCodeError = form.formState.errors.countryCode?.message;
                   return (
                     <FormItem>
-                      <FormLabel>Mobile Number</FormLabel>
+                      <FormLabel>
+                        Mobile Number
+                        <RequiredAsterisk />
+                      </FormLabel>
                       <div className="flex gap-2">
                         <Select
                           value={selectedCountryCode}
@@ -427,7 +450,10 @@ export default function AddInfluencerDialog({
                 control={control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>PAN</FormLabel>
+                    <FormLabel>
+                      PAN
+                      <RequiredAsterisk />
+                    </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -454,7 +480,10 @@ export default function AddInfluencerDialog({
                         name="platform1.platform"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Platform</FormLabel>
+                            <FormLabel>
+                              Platform
+                              <RequiredAsterisk />
+                            </FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
@@ -473,7 +502,10 @@ export default function AddInfluencerDialog({
                         name="platform1.channelName"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Channel Name</FormLabel>
+                            <FormLabel>
+                              Channel Name
+                              <RequiredAsterisk />
+                            </FormLabel>
                             <FormControl><Input placeholder="e.g., Jane's World" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -484,7 +516,10 @@ export default function AddInfluencerDialog({
                       name="platform1.handle"
                       render={({ field }) => (
                       <FormItem>
-                          <FormLabel>Username</FormLabel>
+                          <FormLabel>
+                            Username
+                            <RequiredAsterisk />
+                          </FormLabel>
                           <FormControl>
                             <Input
                               placeholder="janedoe"
@@ -561,7 +596,10 @@ export default function AddInfluencerDialog({
                 control={control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category / Niche</FormLabel>
+                    <FormLabel>
+                      Category / Niche
+                      <RequiredAsterisk />
+                    </FormLabel>
                     <Select
                       value={field.value}
                       onValueChange={(value) => field.onChange(value)}
@@ -619,7 +657,10 @@ export default function AddInfluencerDialog({
                   );
                   return (
                     <FormItem>
-                      <FormLabel>Languages</FormLabel>
+                      <FormLabel>
+                        Languages
+                        <RequiredAsterisk />
+                      </FormLabel>
                       <DropdownMenu onOpenChange={(open) => {
                         if (!open) setLanguageSearch("");
                       }}>
@@ -685,7 +726,10 @@ export default function AddInfluencerDialog({
                 control={control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Promotion By</FormLabel>
+                    <FormLabel>
+                      Last Promotion By
+                      <RequiredAsterisk />
+                    </FormLabel>
                     <Select
                       value={field.value}
                       onValueChange={(value) => field.onChange(value)}
@@ -712,7 +756,10 @@ export default function AddInfluencerDialog({
                 name="lastPromotionDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col pt-2">
-                    <FormLabel>Last Promotion Date</FormLabel>
+                    <FormLabel>
+                      Last Promotion Date
+                      <RequiredAsterisk />
+                    </FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>

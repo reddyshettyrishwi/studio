@@ -19,6 +19,7 @@ import { upsertUser } from "@/lib/data";
 import { useAuth, useFirestore, useUser } from "@/firebase";
 import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { normalizeDepartment } from "@/lib/options";
 
 export default function LoginPage() {
   return (
@@ -75,7 +76,9 @@ function LoginPageContent() {
       const roleDocRef = doc(db, "userRoles", firebaseUser.uid);
       const roleDoc = await getDoc(roleDocRef);
       const rawRole = roleDoc.exists() ? String(roleDoc.data()?.role ?? "") : "";
+      const rawDepartment = roleDoc.exists() ? (roleDoc.data()?.department as string | undefined) : undefined;
       const normalizedRole = rawRole.toLowerCase();
+      const normalizedDepartment = normalizeDepartment(rawDepartment);
 
       if (normalizedRole !== "manager" && normalizedRole !== "executive") {
         await signOut(auth);
@@ -97,7 +100,26 @@ function LoginPageContent() {
         return;
       }
 
-      router.push(`/dashboard?name=${encodeURIComponent(userProfile.name)}&role=${normalizedRole}`);
+      if (normalizedRole === "manager" && !normalizedDepartment) {
+        await signOut(auth);
+        toast({
+          variant: "destructive",
+          title: "Department not assigned.",
+          description: "Ask an administrator to assign your department before signing in.",
+        });
+        return;
+      }
+
+      const params = new URLSearchParams({
+        name: userProfile.name,
+        role: normalizedRole,
+      });
+
+      if (normalizedRole === "manager" && normalizedDepartment) {
+        params.set("department", normalizedDepartment);
+      }
+
+      router.push(`/dashboard?${params.toString()}`);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -120,7 +142,9 @@ function LoginPageContent() {
         const roleDocRef = doc(db, "userRoles", authUser.uid);
         const roleDoc = await getDoc(roleDocRef);
         const rawRole = roleDoc.exists() ? String(roleDoc.data()?.role ?? "") : "";
+        const rawDepartment = roleDoc.exists() ? (roleDoc.data()?.department as string | undefined) : undefined;
         const normalizedRole = rawRole.toLowerCase();
+        const normalizedDepartment = normalizeDepartment(rawDepartment);
 
         if (normalizedRole !== "manager" && normalizedRole !== "executive") {
           await signOut(auth);
@@ -146,8 +170,27 @@ function LoginPageContent() {
           return;
         }
 
+        if (normalizedRole === "manager" && !normalizedDepartment) {
+          await signOut(auth);
+          if (isActive) {
+            toast({
+              variant: "destructive",
+              title: "Department not assigned.",
+              description: "Ask an administrator to assign your department before signing in.",
+            });
+          }
+          return;
+        }
+
         if (isActive) {
-          router.push(`/dashboard?name=${encodeURIComponent(authUser.displayName || "User")}&role=${normalizedRole}`);
+          const params = new URLSearchParams({
+            name: authUser.displayName || "User",
+            role: normalizedRole,
+          });
+          if (normalizedRole === "manager" && normalizedDepartment) {
+            params.set("department", normalizedDepartment);
+          }
+          router.push(`/dashboard?${params.toString()}`);
         }
       } catch (error) {
         console.error("Role enforcement failed", error);

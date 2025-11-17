@@ -20,6 +20,8 @@ declare module 'lucide-react' {
     export const Loader2: FC<SVGProps<SVGSVGElement>>;
     export const ShieldAlert: FC<SVGProps<SVGSVGElement>>;
     export const ChevronDown: FC<SVGProps<SVGSVGElement>>;
+    export const ChevronLeft: FC<SVGProps<SVGSVGElement>>;
+    export const ChevronUp: FC<SVGProps<SVGSVGElement>>;
     export const Check: FC<SVGProps<SVGSVGElement>>;
     export const X: FC<SVGProps<SVGSVGElement>>;
     export const ChevronRight: FC<SVGProps<SVGSVGElement>>;
@@ -28,10 +30,13 @@ declare module 'lucide-react' {
     export const MessageSquare: FC<SVGProps<SVGSVGElement>>;
     export const CalendarIcon: FC<SVGProps<SVGSVGElement>>;
     export const ArrowRight: FC<SVGProps<SVGSVGElement>>;
+    export const ArrowLeft: FC<SVGProps<SVGSVGElement>>;
     export const Database: FC<SVGProps<SVGSVGElement>>;
     export const Briefcase: FC<SVGProps<SVGSVGElement>>;
     export const BrainCircuit: FC<SVGProps<SVGSVGElement>>;
     export const Trash2: FC<SVGProps<SVGSVGElement>>;
+    export const PenLine: FC<SVGProps<SVGSVGElement>>;
+    export const PanelLeft: FC<SVGProps<SVGSVGElement>>;
     // Add other icons that you use here...
   }
   

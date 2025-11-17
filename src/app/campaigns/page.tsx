@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { Campaign, Influencer, ApprovalStatus } from "@/lib/types";
-import { DEPARTMENT_OPTIONS } from "@/lib/options";
+import { DEPARTMENT_OPTIONS, isDepartmentOption, normalizeDepartment } from "@/lib/options";
 import {
   logCampaign as logCampaignToDb,
   updateCampaignStatus,
@@ -59,6 +59,7 @@ import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import ViewingAsIndicator from "@/components/viewing-as-indicator";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -72,6 +73,7 @@ import { Calendar } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 const STATUS_METADATA: Record<ApprovalStatus, { label: string; dotClass: string }> = {
   Approved: { label: "Approved", dotClass: "bg-emerald-400" },
@@ -100,6 +102,7 @@ function CampaignsContent() {
   const db = useFirestore();
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
+  const { toast } = useToast();
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
   const [influencers, setInfluencers] = React.useState<Influencer[]>([]);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -108,9 +111,10 @@ function CampaignsContent() {
   const [isLogCampaignOpen, setLogCampaignOpen] = React.useState(false);
   const [userName, setUserName] = React.useState<string>("User");
   const [role, setRole] = React.useState<"manager" | "executive">("manager");
-    const isExecutive = role === "executive";
-    const isManager = role === "manager";
-    const canManageCampaigns = role === "executive" || role === "manager";
+  const [department, setDepartment] = React.useState<string | null>(null);
+  const isExecutive = role === "executive";
+  const isManager = role === "manager";
+  const canManageCampaigns = role === "executive" || role === "manager";
 
   React.useEffect(() => {
     if (!searchParams) return;
@@ -120,12 +124,21 @@ function CampaignsContent() {
 
     const nextName = searchParams.get('name') || 'User';
     setUserName(prev => (prev === nextName ? prev : nextName));
+
+    const rawDepartment = searchParams.get('department');
+    const canonicalDepartment = rawDepartment
+      ? normalizeDepartment(rawDepartment) ?? rawDepartment
+      : null;
+    setDepartment((prev) => (prev === canonicalDepartment ? prev : canonicalDepartment));
   }, [searchParams]);
 
   const queryString = React.useMemo(() => {
     const params = new URLSearchParams({ name: userName, role });
+    if (department) {
+      params.set("department", department);
+    }
     return params.toString();
-  }, [role, userName]);
+  }, [role, userName, department]);
 
   const dashboardHref = React.useMemo(() => `/dashboard?${queryString}`, [queryString]);
   const [isCompletionDialogOpen, setCompletionDialogOpen] = React.useState(false);
@@ -200,6 +213,28 @@ function CampaignsContent() {
   }, [db, authUser]);
 
 
+  const managerDepartmentLower = React.useMemo(
+    () => (department ?? "").trim().toLowerCase(),
+    [department]
+  );
+
+  const canEditCampaign = React.useCallback(
+    (campaignDepartment: string | undefined | null) => {
+      if (role === "executive") {
+        return true;
+      }
+      if (role !== "manager") {
+        return false;
+      }
+      if (!managerDepartmentLower) {
+        return false;
+      }
+      const candidate = (campaignDepartment ?? "").trim().toLowerCase();
+      return Boolean(candidate) && candidate === managerDepartmentLower;
+    },
+    [role, managerDepartmentLower]
+  );
+
   const filteredCampaigns = React.useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     const hasDateFilter = Boolean(dateRangeFilter?.from || dateRangeFilter?.to);
@@ -260,10 +295,10 @@ function CampaignsContent() {
   }
 
   const departmentOptions = React.useMemo(() => {
-    const defaults = [...DEPARTMENT_OPTIONS];
+    const defaults = Array.from(DEPARTMENT_OPTIONS);
     const extras = campaigns
       .map((campaign) => campaign.department)
-      .filter((department) => department && !defaults.includes(department));
+      .filter((department): department is string => Boolean(department) && !isDepartmentOption(department));
     const uniqueExtras = Array.from(new Set(extras));
     return [...defaults, ...uniqueExtras];
   }, [campaigns]);
@@ -290,14 +325,42 @@ function CampaignsContent() {
   }, [dateRangeFilter]);
 
   const handleStatusChange = (campaignId: string, status: ApprovalStatus) => {
-    if (!db || !isManager) return;
-    const current = campaigns.find(campaign => campaign.id === campaignId);
-    if (current?.approvalStatus === status) return;
+    if (!db) {
+      return;
+    }
+    const current = campaigns.find((campaign) => campaign.id === campaignId);
+    if (!current) {
+      return;
+    }
+
+    if (!isExecutive) {
+      if (!isManager || !canEditCampaign(current.department)) {
+        toast({
+          variant: "destructive",
+          title: "Action not permitted",
+          description: "You can only update campaigns from your assigned department.",
+        });
+        return;
+      }
+    }
+
+    if (current.approvalStatus === status) {
+      return;
+    }
+
     updateCampaignStatus(db, campaignId, status);
   };
 
   const handleCompletionSubmit = (values: CompleteCampaignFormValues) => {
     if (!db || !canManageCampaigns || !completionCampaign) return;
+    if (!isExecutive && (!isManager || !canEditCampaign(completionCampaign.department))) {
+      toast({
+        variant: "destructive",
+        title: "Action not permitted",
+        description: "You can only update campaigns from your assigned department.",
+      });
+      return;
+    }
     completeCampaignInDb(db, completionCampaign.id, {
       expectedReach: values.expectedReach,
       outcomes: values.outcomes,
@@ -548,8 +611,15 @@ function CampaignsContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCampaigns.map(campaign => {
+                  {filteredCampaigns.map((campaign) => {
                     const influencer = getInfluencerById(campaign.influencerId);
+                    const canEditThisCampaign = canEditCampaign(campaign.department);
+                    const allowStatusDropdown = isExecutive || canEditThisCampaign;
+                    const allowCompletionActions = isExecutive || canEditThisCampaign;
+                    const statusMeta = STATUS_METADATA[campaign.approvalStatus] ?? {
+                      label: campaign.approvalStatus,
+                      dotClass: "bg-muted-foreground/60",
+                    };
                     return (
                       <TableRow key={campaign.id}>
                         <TableCell className="font-medium">{campaign.name}</TableCell>
@@ -569,7 +639,7 @@ function CampaignsContent() {
                         <TableCell>{format(parseISO(campaign.date), 'dd MMM yyyy')}</TableCell>
                         <TableCell className="text-muted-foreground">{campaign.deliverables}</TableCell>
                         <TableCell>
-                          {isManager ? (
+                          {allowStatusDropdown ? (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
@@ -577,11 +647,9 @@ function CampaignsContent() {
                                   variant="outline"
                                   className="flex items-center gap-2 border-border/70 bg-muted/40"
                                 >
-                                  <span>{STATUS_METADATA[campaign.approvalStatus]?.label ?? campaign.approvalStatus}</span>
+                                  <span>{statusMeta.label}</span>
                                   <span
-                                    className={`h-2 w-2 rounded-full ${
-                                      STATUS_METADATA[campaign.approvalStatus]?.dotClass ?? "bg-muted-foreground/60"
-                                    }`}
+                                    className={`h-2 w-2 rounded-full ${statusMeta.dotClass}`}
                                     aria-hidden
                                   />
                                   <ChevronDown className="h-3 w-3 opacity-70" />
@@ -628,35 +696,68 @@ function CampaignsContent() {
                                     Logged {format(parseISO(campaign.completionDetails.reportedAt), "dd MMM yyyy")}
                                   </p>
                                 )}
-                                <Button
-                                  variant="link"
-                                  size="sm"
-                                  className="px-0"
-                                  onClick={() => {
-                                    setCompletionCampaignId(campaign.id);
-                                    setCompletionDialogOpen(true);
-                                  }}
-                                >
-                                  Update details
-                                </Button>
+                                {allowCompletionActions ? (
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="px-0"
+                                    onClick={() => {
+                                      setCompletionCampaignId(campaign.id);
+                                      setCompletionDialogOpen(true);
+                                    }}
+                                  >
+                                    Update details
+                                  </Button>
+                                ) : (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="link" size="sm" className="px-0" disabled>
+                                        Update details
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>You can only update campaigns from your department.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
                               </div>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => {
-                                  setCompletionCampaignId(campaign.id);
-                                  setCompletionDialogOpen(true);
-                                }}
-                                disabled={campaign.approvalStatus !== "Approved"}
-                                title={
-                                  campaign.approvalStatus !== "Approved"
+                              (() => {
+                                const disabledByStatus = campaign.approvalStatus !== "Approved";
+                                const disabledByDepartment = !allowCompletionActions;
+                                const buttonDisabled = disabledByStatus || disabledByDepartment;
+                                const tooltipMessage = disabledByDepartment
+                                  ? "You can only log completion for campaigns in your department."
+                                  : disabledByStatus
                                     ? "Approve the campaign before logging completion."
-                                    : undefined
-                                }
-                              >
-                                Log completion
-                              </Button>
+                                    : undefined;
+                                const button = (
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    disabled={buttonDisabled}
+                                    onClick={() => {
+                                      if (buttonDisabled) {
+                                        return;
+                                      }
+                                      setCompletionCampaignId(campaign.id);
+                                      setCompletionDialogOpen(true);
+                                    }}
+                                  >
+                                    Log completion
+                                  </Button>
+                                );
+                                return tooltipMessage ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>{button}</TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{tooltipMessage}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  button
+                                );
+                              })()
                             )}
                           </TableCell>
                         )}

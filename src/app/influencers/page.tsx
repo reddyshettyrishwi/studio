@@ -23,7 +23,13 @@ import {
   PenLine,
 } from "lucide-react";
 import { Influencer, Platform } from "@/lib/types";
-import { CATEGORY_OPTIONS, LANGUAGE_OPTIONS } from "@/lib/options";
+import {
+  CATEGORY_OPTIONS,
+  LANGUAGE_OPTIONS,
+  isCategoryOption,
+  isLanguageOption,
+  normalizeDepartment,
+} from "@/lib/options";
 import { addInfluencer as addInfluencerToDb, deleteInfluencer, updateInfluencer as updateInfluencerInDb } from "@/lib/data";
 import {
   SidebarProvider,
@@ -110,6 +116,7 @@ function InfluencersContent() {
   const [activeTab, setActiveTab] = React.useState<"all" | "mine">("all");
   const [userName, setUserName] = React.useState<string>("User");
   const [role, setRole] = React.useState<"manager" | "executive">("manager");
+  const [department, setDepartment] = React.useState<string | null>(null);
   const isExecutive = role === "executive";
   const canManageInfluencers = role === "executive" || role === "manager";
   const [isEditDialogOpen, setEditDialogOpen] = React.useState(false);
@@ -117,8 +124,11 @@ function InfluencersContent() {
 
   const queryString = React.useMemo(() => {
     const params = new URLSearchParams({ name: userName, role });
+    if (department) {
+      params.set("department", department);
+    }
     return params.toString();
-  }, [role, userName]);
+  }, [role, userName, department]);
 
   const dashboardHref = React.useMemo(() => `/dashboard?${queryString}`, [queryString]);
 
@@ -130,6 +140,12 @@ function InfluencersContent() {
 
     const nextName = searchParams.get('name') || 'User';
     setUserName(prev => (prev === nextName ? prev : nextName));
+
+    const rawDepartment = searchParams.get('department');
+    const canonicalDepartment = rawDepartment
+      ? normalizeDepartment(rawDepartment) ?? rawDepartment
+      : null;
+    setDepartment((prev) => (prev === canonicalDepartment ? prev : canonicalDepartment));
   }, [searchParams]);
 
 
@@ -201,22 +217,19 @@ function InfluencersContent() {
 
 
   const categories = React.useMemo(() => {
-    const defaults = [...CATEGORY_OPTIONS];
+    const defaults = Array.from(CATEGORY_OPTIONS);
     const extras = initialInfluencers
       .map((influencer) => influencer.category)
-      .filter(
-        (category): category is string =>
-          Boolean(category) && !defaults.includes(category)
-      );
+      .filter((category): category is string => Boolean(category) && !isCategoryOption(category));
     const uniqueExtras = Array.from(new Set(extras));
     return [...defaults, ...uniqueExtras];
   }, [initialInfluencers]);
 
   const languages = React.useMemo(() => {
-    const defaults = [...LANGUAGE_OPTIONS];
+    const defaults = Array.from(LANGUAGE_OPTIONS);
     const extras = initialInfluencers
       .flatMap((influencer) => influencer.languages ?? [])
-      .filter((language) => !defaults.includes(language));
+      .filter((language): language is string => !isLanguageOption(language));
     const uniqueExtras = Array.from(new Set(extras));
     return [...defaults, ...uniqueExtras];
   }, [initialInfluencers]);

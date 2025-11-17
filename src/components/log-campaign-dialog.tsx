@@ -73,6 +73,8 @@ export default function LogCampaignDialog({
   const { toast } = useToast();
   const [isCheckingPrice, setIsCheckingPrice] = React.useState(false);
   const [priceAnomaly, setPriceAnomaly] = React.useState<AlertOnPriceAnomaliesOutput | null>(null);
+  const [influencerSearch, setInfluencerSearch] = React.useState("");
+  const [departmentSearch, setDepartmentSearch] = React.useState("");
 
   const form = useForm<LogCampaignFormValues>({
     resolver: zodResolver(campaignSchema),
@@ -148,11 +150,33 @@ export default function LogCampaignDialog({
     onClose();
   }
 
+  const filteredInfluencers = React.useMemo(() => {
+    const query = influencerSearch.trim().toLowerCase();
+    if (!query) {
+      return influencers;
+    }
+    return influencers.filter((influencer) =>
+      influencer.name.toLowerCase().includes(query)
+    );
+  }, [influencerSearch, influencers]);
+
+  const filteredDepartments = React.useMemo(() => {
+    const query = departmentSearch.trim().toLowerCase();
+    if (!query) {
+      return DEPARTMENT_OPTIONS;
+    }
+    return DEPARTMENT_OPTIONS.filter((department) =>
+      department.toLowerCase().includes(query)
+    );
+  }, [departmentSearch]);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
         if (!open) {
             form.reset();
             setPriceAnomaly(null);
+            setInfluencerSearch("");
+            setDepartmentSearch("");
             onClose();
         }
     }}>
@@ -172,14 +196,33 @@ export default function LogCampaignDialog({
                     onValueChange={field.onChange}
                     value={field.value ?? undefined}
                     defaultValue={field.value ?? undefined}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setInfluencerSearch("");
+                      }
+                    }}
                   >
                     <FormControl>
                       <SelectTrigger><SelectValue placeholder="Select an influencer" /></SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {influencers.map(i => (
-                        <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-                      ))}
+                      <div className="p-2">
+                        <Input
+                          value={influencerSearch}
+                          onChange={(event) => setInfluencerSearch(event.target.value)}
+                          placeholder="Search influencer..."
+                          autoFocus
+                        />
+                      </div>
+                      {filteredInfluencers.length ? (
+                        filteredInfluencers.map((influencer) => (
+                          <SelectItem key={influencer.id} value={influencer.id}>
+                            {influencer.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -209,18 +252,38 @@ export default function LogCampaignDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Department</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setDepartmentSearch("");
+                      }
+                    }}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select department" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {DEPARTMENT_OPTIONS.map((department) => (
-                        <SelectItem key={department} value={department}>
-                          {department}
-                        </SelectItem>
-                      ))}
+                      <div className="p-2">
+                        <Input
+                          value={departmentSearch}
+                          onChange={(event) => setDepartmentSearch(event.target.value)}
+                          placeholder="Search department..."
+                          autoFocus
+                        />
+                      </div>
+                      {filteredDepartments.length ? (
+                        filteredDepartments.map((department) => (
+                          <SelectItem key={department} value={department}>
+                            {department}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
