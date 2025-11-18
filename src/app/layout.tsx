@@ -2,14 +2,6 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { Roboto } from 'next/font/google';
-
-const roboto = Roboto({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-roboto',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'Nxthub',
@@ -22,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={roboto.variable}>
+    <html lang="en" suppressHydrationWarning>
       <body className="font-body antialiased bg-gradient-radial-spread">
         <FirebaseClientProvider>
           {children}

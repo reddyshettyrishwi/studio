@@ -50,8 +50,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -65,6 +63,12 @@ import {
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import AddInfluencerDialog from "@/components/add-influencer-dialog";
 import { format, isPast } from "date-fns";
 import {
@@ -158,10 +162,20 @@ function InfluencersContent() {
   });
   const [categoryFilterSearch, setCategoryFilterSearch] = React.useState("");
   const [languageFilterSearch, setLanguageFilterSearch] = React.useState("");
+  const activeFilterCount = filters.category.size + filters.language.size;
   
   const [isAddInfluencerOpen, setAddInfluencerOpen] = React.useState(false);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = React.useState<Influencer | null>(null);
+
+  const clearFilters = React.useCallback(() => {
+    setFilters({
+      category: new Set(),
+      language: new Set(),
+    });
+    setCategoryFilterSearch("");
+    setLanguageFilterSearch("");
+  }, []);
 
   React.useEffect(() => {
     if (!isUserLoading && !authUser) {
@@ -456,56 +470,133 @@ function InfluencersContent() {
             }}
           >
             <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full md:w-auto justify-start">
-              <Filter className="mr-2 h-4 w-4"/>
-              Filters
-            </Button>
+              <Button variant="outline" className="w-full md:w-auto justify-start">
+                <Filter className="mr-2 h-4 w-4" />
+                {activeFilterCount ? `Filters (${activeFilterCount})` : "Filters"}
+              </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
-            <DropdownMenuLabel>Category</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="px-2 pb-2">
-              <Input
-                value={categoryFilterSearch}
-                onChange={(event) => setCategoryFilterSearch(event.target.value)}
-                placeholder="Search categories..."
-              />
-            </div>
-            {filteredCategoryOptions.length ? (
-              filteredCategoryOptions.map(cat => (
-                <DropdownMenuCheckboxItem
-                  key={cat}
-                  checked={filters.category.has(cat)}
-                  onCheckedChange={() => handleFilterChange('category', cat)}
-                >
-                  {cat}
-                </DropdownMenuCheckboxItem>
-              ))
-            ) : (
-              <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
-            )}
-             <DropdownMenuLabel>Language</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <div className="px-2 pb-2">
-              <Input
-                value={languageFilterSearch}
-                onChange={(event) => setLanguageFilterSearch(event.target.value)}
-                placeholder="Search languages..."
-              />
-            </div>
-            {filteredLanguageOptions.length ? (
-              filteredLanguageOptions.map(lang => (
-                <DropdownMenuCheckboxItem
-                  key={lang}
-                  checked={filters.language.has(lang)}
-                  onCheckedChange={() => handleFilterChange('language', lang)}
-                >
-                  {lang}
-                </DropdownMenuCheckboxItem>
-              ))
-            ) : (
-              <p className="px-3 py-2 text-sm text-muted-foreground">No matches found.</p>
-            )}
+            <DropdownMenuContent className="w-80 p-0 overflow-hidden" align="end" sideOffset={8}>
+              <div className="flex items-center justify-between border-b px-4 py-3">
+                <p className="text-sm font-semibold text-foreground">Refine results</p>
+                {activeFilterCount > 0 ? (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear all
+                  </Button>
+                ) : null}
+              </div>
+              <div className="max-h-[70vh] overflow-y-auto">
+                <Accordion type="multiple" defaultValue={["category", "language"]}>
+                  <AccordionItem value="category">
+                    <AccordionTrigger className="px-4 text-left">
+                      <span className="flex items-center gap-2">
+                        Category
+                        {filters.category.size ? (
+                          <Badge variant="secondary" className="text-xs font-medium">
+                            {filters.category.size}
+                          </Badge>
+                        ) : null}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4">
+                      <Input
+                        value={categoryFilterSearch}
+                        onChange={(event) => setCategoryFilterSearch(event.target.value)}
+                        placeholder="Search categories..."
+                      />
+                      <div className="mt-3 max-h-48 space-y-1 overflow-y-auto pr-1">
+                        {filteredCategoryOptions.length ? (
+                          filteredCategoryOptions.map((cat) => (
+                            <DropdownMenuCheckboxItem
+                              key={cat}
+                              checked={filters.category.has(cat)}
+                              onCheckedChange={() => handleFilterChange("category", cat)}
+                              className="capitalize"
+                            >
+                              {cat}
+                            </DropdownMenuCheckboxItem>
+                          ))
+                        ) : (
+                          <p className="px-1 py-2 text-sm text-muted-foreground">No matches found.</p>
+                        )}
+                      </div>
+                      {filters.category.size > 0 ? (
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setFilters((prev) => ({
+                                ...prev,
+                                category: new Set(),
+                              }));
+                              setCategoryFilterSearch("");
+                            }}
+                          >
+                            Clear category
+                          </Button>
+                        </div>
+                      ) : null}
+                    </AccordionContent>
+                  </AccordionItem>
+                  <AccordionItem value="language">
+                    <AccordionTrigger className="px-4 text-left">
+                      <span className="flex items-center gap-2">
+                        Language
+                        {filters.language.size ? (
+                          <Badge variant="secondary" className="text-xs font-medium">
+                            {filters.language.size}
+                          </Badge>
+                        ) : null}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4">
+                      <Input
+                        value={languageFilterSearch}
+                        onChange={(event) => setLanguageFilterSearch(event.target.value)}
+                        placeholder="Search languages..."
+                      />
+                      <div className="mt-3 max-h-48 space-y-1 overflow-y-auto pr-1">
+                        {filteredLanguageOptions.length ? (
+                          filteredLanguageOptions.map((lang) => (
+                            <DropdownMenuCheckboxItem
+                              key={lang}
+                              checked={filters.language.has(lang)}
+                              onCheckedChange={() => handleFilterChange("language", lang)}
+                              className="capitalize"
+                            >
+                              {lang}
+                            </DropdownMenuCheckboxItem>
+                          ))
+                        ) : (
+                          <p className="px-1 py-2 text-sm text-muted-foreground">No matches found.</p>
+                        )}
+                      </div>
+                      {filters.language.size > 0 ? (
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setFilters((prev) => ({
+                                ...prev,
+                                language: new Set(),
+                              }));
+                              setLanguageFilterSearch("");
+                            }}
+                          >
+                            Clear language
+                          </Button>
+                        </div>
+                      ) : null}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+                <div className="border-t px-4 py-3 text-xs text-muted-foreground">
+                  {activeFilterCount
+                    ? `${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active`
+                    : "No filters applied"}
+                </div>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -521,11 +612,23 @@ function InfluencersContent() {
           </Tabs>
 
           <div className="flex items-center gap-1 bg-secondary/50 backdrop-blur-sm p-1 rounded-md">
-            <Button variant={viewMode === 'grid' ? "secondary" : "ghost"} size="icon" onClick={() => setViewMode('grid')}>
-              <LayoutGrid className="h-5 w-5"/>
+            <Button
+              variant={viewMode === 'grid' ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode('grid')}
+              aria-pressed={viewMode === 'grid'}
+              className={viewMode === 'grid' ? 'shadow-glow-primary' : ''}
+            >
+              <LayoutGrid className={`h-5 w-5 transition-opacity ${viewMode === 'grid' ? 'opacity-100' : 'opacity-60'}`} />
             </Button>
-            <Button variant={viewMode === 'table' ? "secondary" : "ghost"} size="icon" onClick={() => setViewMode('table')}>
-              <List className="h-5 w-5"/>
+            <Button
+              variant={viewMode === 'table' ? "secondary" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode('table')}
+              aria-pressed={viewMode === 'table'}
+              className={viewMode === 'table' ? 'shadow-glow-primary' : ''}
+            >
+              <List className={`h-5 w-5 transition-opacity ${viewMode === 'table' ? 'opacity-100' : 'opacity-60'}`} />
             </Button>
           </div>
 

@@ -190,7 +190,7 @@ const convertInfluencerToFormValues = (influencer: Influencer): Partial<AddInflu
 
 const RequiredAsterisk: React.FC = () => (
   <span className="ml-1 inline-flex items-center gap-1">
-    <span className="text-destructive" aria-hidden="true">
+    <span className="text-red-500 dark:text-red-300 font-semibold" aria-hidden="true">
       *
     </span>
     <span className="sr-only">(required)</span>
@@ -800,7 +800,7 @@ export default function AddInfluencerDialog({
                 control={control}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last Price Paid (₹, Excluding Taxes) (Optional)</FormLabel>
+                    <FormLabel>Last Price Paid (₹, Excluding Taxes)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"

@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    --font-roboto: system-ui;
     --background: 240 10% 4%;
     --foreground: 0 0% 95%;
     --card: 240 5% 15% / 0.6;
@@ -47,6 +48,7 @@
   }
 
   .dark {
+    --font-roboto: system-ui;
     --background: 240 10% 4%;
     --foreground: 0 0% 95%;
     --card: 240 5% 15% / 0.6;
