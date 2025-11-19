@@ -9,7 +9,7 @@ import type { FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 // import the app you already created (lib/firebase.js at repo root)
-import firebaseApp from "../../lib/firebase";
+import firebaseApp from "@/lib/firebase";
 
 /**
  * Return a browser-only Auth instance, or null during SSR.

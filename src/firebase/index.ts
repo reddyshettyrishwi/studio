@@ -3,7 +3,7 @@
 import type { FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import firebaseApp from '../../lib/firebase';
+import firebaseApp from '@/lib/firebase';
 
 type FirebaseServices = {
   firebaseApp: FirebaseApp;
